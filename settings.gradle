@@ -1,0 +1,22 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            // RetroFuturaGradle
+            name = "GTNH Maven"
+            url = uri("http://jenkins.usrv.eu:8081/nexus/content/groups/public/")
+            allowInsecureProtocol = true
+            mavenContent {
+                includeGroup("com.gtnewhorizons")
+                includeGroup("com.gtnewhorizons.retrofuturagradle")
+            }
+        }
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0' // Provides java toolchains
+}
+
+
+rootProject.name = "${mod_name}"

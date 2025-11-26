@@ -1,0 +1,94 @@
+plugins {
+    id "java-library"
+    id "com.gtnewhorizons.retrofuturagradle" version "${retro_futura_gradle_version}"
+}
+
+base {
+    archivesName = "${archives_base_name}-${mod_version}"
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+    }
+}
+
+minecraft {
+    mcVersion.set(minecraft_version)
+    username.set(dev_username)
+
+    injectedTags.put("MOD_ID", mod_id)
+    injectedTags.put("MOD_VERSION", mod_version)
+    injectedTags.put("MOD_NAME", mod_name)
+}
+
+tasks.injectTags.outputClassName.set("${mod_base_package}.Tags")
+
+repositories {
+    // MixinBooter
+    maven {
+        name 'CleanroomMc Maven'
+        url "https://maven.cleanroommc.com"
+    }
+    // SpongePowered Mixins
+    maven {
+        name 'SpongePowered Maven'
+        url 'https://repo.spongepowered.org/maven'
+    }
+    // Xaero's World- And Minimap
+    maven {
+        name = "Modrinth Maven"
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+}
+
+dependencies {
+    // Mixin-booter Common
+    annotationProcessor 'org.ow2.asm:asm-debug-all:5.2'
+    annotationProcessor 'com.google.guava:guava:32.1.2-jre'
+    annotationProcessor 'com.google.code.gson:gson:2.8.9'
+
+    // Mixin-booter RetroFuturaGradle Specific
+    String mixinBooter = modUtils.enableMixins("zone.rong:mixinbooter:${mixin_booter_version}", "something.mixins.json")
+    api (mixinBooter) {
+        transitive = false
+    }
+    annotationProcessor (mixinBooter) {
+        transitive = false
+    }
+
+    // General Dependencies
+    runtimeOnly rfg.deobf("maven.modrinth:xaeros-minimap:${xaeros_minimap_version}")
+    runtimeOnly rfg.deobf("maven.modrinth:xaeros-world-map:${xaeros_world_map_version}")
+}
+
+jar {
+    inputs.property "archivesName", base.archivesName
+
+    from("LICENSE") {
+        rename { "${it}_${inputs.properties.archivesName}" }
+    }
+}
+
+processResources {
+    inputs.property "version", version
+    inputs.property 'mod_id', mod_id
+    inputs.property 'mod_name', mod_name
+    inputs.property 'mod_version', mod_version
+    inputs.property 'mod_description', mod_description
+    inputs.property 'minecraft_version', minecraft_version
+
+    filteringCharset "UTF-8"
+    filesMatching("mcmod.info") { fcd ->
+        fcd.expand(
+                'mod_id': inputs.properties.mod_id,
+                'mod_name': inputs.properties.mod_name,
+                'mod_version': inputs.properties.mod_version,
+                'mod_description': inputs.properties.mod_description,
+                'minecraft_version': inputs.properties.minecraft_version
+        )
+    }
+}
