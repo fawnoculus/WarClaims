@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 @Mod(modid = Tags.MOD_ID, version = Tags.MOD_VERSION, name = Tags.MOD_NAME, useMetadata = true)
 public class WarClaims {
     public static final Logger LOGGER = LogManager.getLogger(Tags.MOD_ID);
-    @SidedProxy(clientSide = "net.fawnoculus.warclaims.WarClaimsClientProxy", serverSide = "net.fawnoculus.warclaims.WarClaimsCommonProxy")
+    @SidedProxy(clientSide = "net.fawnoculus.warclaims.WarClaimsClientProxy", serverSide = "net.fawnoculus.warclaims.WarClaimsCommonProxy", modId = Tags.MOD_ID)
     public static WarClaimsCommonProxy proxy;
 
     @Mod.EventHandler
@@ -31,7 +31,6 @@ public class WarClaims {
     }
 
     @Mod.EventHandler
-    // register server commands in this event handler (Remove if not needed)
     public void serverStarting(FMLServerStartingEvent event) {
         proxy.serverStarting(event);
     }
