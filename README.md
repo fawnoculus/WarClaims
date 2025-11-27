@@ -5,7 +5,11 @@
 </div>
 
 ## What is War Claims?
-War Claims is Claim mod with War in Mind, that means that
+War Claims is Claim mod with War in Mind.
+This is not just the only (maybe) Claim with Xaero's World-/ MiniMap support but also ...
+I forgot how to formulate sentences... ...
+I should probably not be writing READMEs at 5 in the Morning.
+I'll finish the README later, I swear.
 
 ## Downloading from GitHub actions
 1. Navigate to the Latest (topmost) successfully ran (green check) [Action](https://github.com/fawnoculus/WarClaims/actions/workflows/build.yml)

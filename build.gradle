@@ -4,7 +4,7 @@ plugins {
 }
 
 base {
-    archivesName = "${archives_base_name}-${mod_version}"
+    archivesName = "${mod_id}"
 }
 
 java {
@@ -20,6 +20,18 @@ minecraft {
     injectedTags.put("MOD_ID", mod_id)
     injectedTags.put("MOD_VERSION", mod_version)
     injectedTags.put("MOD_NAME", mod_name)
+
+    extraRunJvmArguments.addAll([
+            "-ea:${mod_base_package}",
+            '-Dmixin.hotSwap=true',
+            '-Dmixin.checks.interfaces=true',
+            '-Dmixin.debug.export=true'
+    ])
+}
+
+configurations {
+    embed
+    implementation.extendsFrom(embed)
 }
 
 tasks.injectTags.outputClassName.set("${mod_base_package}.Tags")
@@ -43,7 +55,15 @@ repositories {
             includeGroup "maven.modrinth"
         }
     }
+    maven {
+        name = "Curseforge Maben"
+        url = "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
 }
+
 
 dependencies {
     // Mixin-booter Common
@@ -52,7 +72,7 @@ dependencies {
     annotationProcessor 'com.google.code.gson:gson:2.8.9'
 
     // Mixin-booter RetroFuturaGradle Specific
-    String mixinBooter = modUtils.enableMixins("zone.rong:mixinbooter:${mixin_booter_version}", "something.mixins.json")
+    String mixinBooter = modUtils.enableMixins("zone.rong:mixinbooter:${mixin_booter_version}")
     api (mixinBooter) {
         transitive = false
     }
@@ -61,19 +81,43 @@ dependencies {
     }
 
     // General Dependencies
-    runtimeOnly rfg.deobf("maven.modrinth:xaeros-minimap:${xaeros_minimap_version}")
-    runtimeOnly rfg.deobf("maven.modrinth:xaeros-world-map:${xaeros_world_map_version}")
+    implementation "zone.rong:mixinbooter:${mixin_booter_version}"
+    implementation rfg.deobf("maven.modrinth:xaeros-minimap:${xaeros_minimap_version}")
+    implementation rfg.deobf("maven.modrinth:xaeros-world-map:${xaeros_world_map_version}")
 }
 
 jar {
+    archiveAppendix = "${mod_version}"
+
     inputs.property "archivesName", base.archivesName
 
     from("LICENSE") {
         rename { "${it}_${inputs.properties.archivesName}" }
     }
+
+    manifest {
+        attributes(
+                "MixinConfigs": "warclaims.mixins.json",
+                "ForceLoadAsMod": true,
+                "TweakClass": "org.spongepowered.asm.launch.MixinTweaker",
+                "TweakOrder": 0
+        )
+    }
+
+    from provider {
+        configurations.embed.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
+tasks.named("jar").configure {
+    finalizedBy('reobfJar')
 }
 
 processResources {
+    setDuplicatesStrategy(DuplicatesStrategy.WARN)
+
     inputs.property "version", version
     inputs.property 'mod_id', mod_id
     inputs.property 'mod_name', mod_name

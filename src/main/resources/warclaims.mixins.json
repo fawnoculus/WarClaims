@@ -3,14 +3,20 @@
   "required": true,
   "minVersion": "0.8",
   "compatibilityLevel": "JAVA_8",
+  "refmap": "mixins.war_claims.refmap.json",
   "injectors": {
     "defaultRequire": 1
   },
   "overwrites": {
     "conformVisibility": true
   },
-  "client": [
-  ],
   "mixins": [
+    "MinecraftServerMixin",
+    "MiniMapHighlighterRegistryMixin",
+    "PlayerListMixin",
+    "WorldMapHighlighterRegistryMixin"
+  ],
+  "client": [
+    "NetHandlerPlayClientMixin"
   ]
 }
