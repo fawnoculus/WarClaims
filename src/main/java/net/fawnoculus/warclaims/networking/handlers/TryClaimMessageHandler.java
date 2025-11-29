@@ -24,10 +24,7 @@ public class TryClaimMessageHandler implements IMessageHandler<TryClaimMessage, 
 
         for (int x = message.startX; x < message.endX; x++) {
             for (int z = message.startZ; z < message.endZ; z++) {
-
-
-                ClaimManager.claim(player.dimension, x, z, selectedTeam, 0);
-                WarClaims.LOGGER.info("{} tried claiming {} {}", ctx.getServerHandler().player.getGameProfile().getName(), x, z);
+                ClaimManager.claim(player.dimension, x, z, selectedTeam, 5);
             }
         }
 

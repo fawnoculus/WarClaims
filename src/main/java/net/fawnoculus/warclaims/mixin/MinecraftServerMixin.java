@@ -38,7 +38,7 @@ public class MinecraftServerMixin {
         this.profiler.endSection();
     }
 
-    @Inject(method = "run", at = @At("HEAD"))
+    @Inject(method = "loadAllWorlds", at = @At("TAIL"))
     private void onServerStart(CallbackInfo ci){
         String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
         ClaimManager.loadFromFile(worldPath);

@@ -44,7 +44,7 @@ public class ClaimSyncMessage implements IMessage {
             int dimensionId = buf.readInt();
             int updatedClaims = buf.readInt();
 
-            for (int j = 0; j < updatedDimensions; j++) {
+            for (int j = 0; j < updatedClaims; j++) {
                 int chunkX = buf.readInt();
                 int chunkZ = buf.readInt();
                 boolean isNull = buf.readBoolean();

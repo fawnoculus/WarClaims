@@ -65,19 +65,20 @@ public class ClaimManager {
 
     public static void onTick() {
         if(!currentTickUpdates.isEmpty()) {
+            WarClaims.LOGGER.info("SENDEING MENDES: {}", currentTickUpdates.getMap());
             WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
             currentTickUpdates = new ClaimSyncMessage();
         }
     }
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
+        WarClaims.LOGGER.info("WHAT THE FUCK");
         WarClaimsNetworking.WRAPPER.sendTo(new ClaimSyncMessage(CLAIMS), playerMP);
     }
 
     public static void loadFromFile(String worldPath) {
         CLAIMS.clear();
         File file = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "claims.bin");
-        WarClaims.LOGGER.info("AAAAAAA: {}", file.getAbsolutePath());
         if (!file.exists()) {
             return;
         }
