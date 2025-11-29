@@ -1,57 +1,140 @@
 package net.fawnoculus.warclaims.claims;
 
 import net.fawnoculus.warclaims.WarClaims;
+import net.fawnoculus.warclaims.claims.faction.FactionInstance;
+import net.fawnoculus.warclaims.claims.faction.FactionManager;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
-import net.fawnoculus.warclaims.networking.messages.ClaimUpdateMessage;
+import net.fawnoculus.warclaims.networking.messages.ClaimSyncMessage;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.ChunkPos;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
+import java.io.*;
 import java.util.HashMap;
-import java.util.List;
 import java.util.UUID;
 
 public class ClaimManager {
-    private static final HashMap<ChunkPos, ClaimInstance> CLAIM_MAP = new HashMap<>();
-    private static final List<EntityPlayerMP> PLAYERS_TO_UPDATE = new ArrayList<>();
-    private static ClaimUpdateMessage currentTickUpdates = new ClaimUpdateMessage();
+    private static final HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> CLAIMS = new HashMap<>();
+    private static ClaimSyncMessage currentTickUpdates = new ClaimSyncMessage();
 
-    public static @Nullable ClaimInstance fromChunk(ChunkPos chunkPos) {
-        return CLAIM_MAP.get(chunkPos);
+    public static @Nullable ClaimInstance getClaim(int dimension, int chunkX, int chunkZ) {
+        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
+        if(dimensionClaims == null) {
+            return null;
+        }
+        return dimensionClaims.get(new ChunkPos(chunkX, chunkZ));
     }
 
-    public static void claim(ChunkPos chunkPos, UUID teamId, int level) {
-        ClaimInstance claimInstance = new ClaimInstance(teamId, chunkPos, level);
-        CLAIM_MAP.put(chunkPos, claimInstance);
-        currentTickUpdates.addClaim(claimInstance);
+    public static @Nullable FactionInstance getFaction(int dimension, int chunkX, int chunkZ) {
+        ClaimInstance claim = getClaim(dimension, chunkX, chunkZ);
+        if (claim == null) {
+            return null;
+        }
+
+        return FactionManager.getFaction(claim.factionId);
+    }
+
+    public static void claim(int dimension, int chunkX, int chunkZ, UUID factionId, int level) {
+        setClaim(dimension, chunkX, chunkZ, new ClaimInstance(factionId, level));
+    }
+
+    public static void setClaim(int dimension, int chunkX, int chunkZ, ClaimInstance claim) {
+        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
+        if(dimensionClaims == null) {
+            dimensionClaims = new HashMap<>();
+        }
+        ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+
+        dimensionClaims.put(pos, claim);
+        currentTickUpdates.setClaim(dimension, chunkX, chunkZ, claim);
+
+        CLAIMS.put(dimension, dimensionClaims);
+    }
+
+    public static void unclaim(int dimension, int chunkX, int chunkZ) {
+        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
+        if(dimensionClaims == null) {
+            dimensionClaims = new HashMap<>();
+        }
+
+        dimensionClaims.remove(new ChunkPos(chunkX, chunkZ));
+        currentTickUpdates.setClaim(dimension, chunkX, chunkZ, null);
+
+        CLAIMS.put(dimension, dimensionClaims);
     }
 
     public static void onTick() {
-        if(!PLAYERS_TO_UPDATE.isEmpty()) {
-            ClaimUpdateMessage initialClaimSync = new ClaimUpdateMessage(CLAIM_MAP);
-            for (EntityPlayerMP playerMP : PLAYERS_TO_UPDATE) {
-                WarClaimsNetworking.WRAPPER.sendTo(initialClaimSync, playerMP);
-            }
-            PLAYERS_TO_UPDATE.clear();
-        }
         if(!currentTickUpdates.isEmpty()) {
             WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
-            currentTickUpdates = new ClaimUpdateMessage();
+            currentTickUpdates = new ClaimSyncMessage();
         }
     }
 
-
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
-        WarClaims.LOGGER.info("SENDING TO on the next tick: {}", playerMP.getGameProfile().getName());
-        PLAYERS_TO_UPDATE.add(playerMP);
+        WarClaimsNetworking.WRAPPER.sendTo(new ClaimSyncMessage(CLAIMS), playerMP);
     }
 
-    public static void update(ClaimUpdateMessage message) {
-        CLAIM_MAP.putAll(message.getFromChunk());
+    public static void loadFromFile(String worldPath) {
+        CLAIMS.clear();
+        File file = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "claims.bin");
+        WarClaims.LOGGER.info("AAAAAAA: {}", file.getAbsolutePath());
+        if (!file.exists()) {
+            return;
+        }
+
+        try (Reader reader = new FileReader(file)) {
+            int claimsSize = reader.read();
+            for (int i = 0; i < claimsSize; i++) {
+                int dimensionId = reader.read();
+
+                int dimensionClaimSize = reader.read();
+                for (int j = 0; j < dimensionClaimSize; j++) {
+                    int chunkX = reader.read();
+                    int chunkZ = reader.read();
+
+                    ClaimInstance claim = ClaimInstance.fromReader(reader);
+                    setClaim(dimensionId, chunkX, chunkZ, claim);
+                }
+            }
+
+        } catch (Throwable e) {
+            WarClaims.LOGGER.warn("Failed to load Claims: {}", e.getMessage());
+        }
     }
 
-    public static void clear() {
-        CLAIM_MAP.clear();
+    public static void saveToFile(String worldPath) {
+        File file = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "claims.bin");
+        try {
+            if (!file.getParentFile().exists()) {
+                boolean ignored = file.getParentFile().mkdirs();
+            }
+            if(file.exists()) {
+                boolean ignored = file.delete();
+            }
+            boolean ignored = file.createNewFile();
+        } catch (IOException e) {
+            WarClaims.LOGGER.warn("Failed to create new Claim file: {}", e.getMessage());
+            return;
+        }
+
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write(CLAIMS.size());
+            for (Integer dimension : CLAIMS.keySet()) {
+                writer.write(dimension);
+
+                HashMap<ChunkPos, ClaimInstance> DimensionClaims = CLAIMS.get(dimension);
+                writer.write(DimensionClaims.size());
+                for (ChunkPos pos : DimensionClaims.keySet()) {
+                    writer.write(pos.x);
+                    writer.write(pos.z);
+
+                    ClaimInstance claim = DimensionClaims.get(pos);
+                    ClaimInstance.toWriter(writer, claim);
+                }
+            }
+
+        } catch (Throwable e) {
+            WarClaims.LOGGER.warn("Failed to save Claims: {}", e.getMessage());
+        }
     }
 }

@@ -1,18 +1,17 @@
 package net.fawnoculus.warclaims.mixin;
 
-import com.mojang.authlib.GameProfile;
 import net.fawnoculus.warclaims.claims.ClaimManager;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.fawnoculus.warclaims.claims.faction.FactionManager;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.management.PlayerList;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.io.File;
 
 @Mixin(MinecraftServer.class)
 public class MinecraftServerMixin {
@@ -21,10 +20,35 @@ public class MinecraftServerMixin {
     @Final
     public Profiler profiler;
 
+    @Shadow
+    @Final
+    private File anvilFile;
+
+    @Shadow
+    private String folderName;
+
     @Inject(method = "tick", at = @At("TAIL"))
     private void onTick(CallbackInfo ci){
-        this.profiler.startSection("ClaimManager");
+        this.profiler.startSection("[WarClaims] ClaimManager");
         ClaimManager.onTick();
         this.profiler.endSection();
+
+        this.profiler.startSection("[WarClaims] TeamManager");
+        FactionManager.onTick();
+        this.profiler.endSection();
+    }
+
+    @Inject(method = "run", at = @At("HEAD"))
+    private void onServerStart(CallbackInfo ci){
+        String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
+        ClaimManager.loadFromFile(worldPath);
+        FactionManager.loadFromFile(worldPath);
+    }
+
+    @Inject(method = "saveAllWorlds", at = @At("TAIL"))
+    private void onSave(CallbackInfo ci){
+        String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
+        ClaimManager.saveToFile(worldPath);
+        FactionManager.saveToFile(worldPath);
     }
 }

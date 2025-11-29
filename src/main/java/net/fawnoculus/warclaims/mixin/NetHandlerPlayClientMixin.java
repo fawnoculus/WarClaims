@@ -1,7 +1,7 @@
 package net.fawnoculus.warclaims.mixin;
 
-import net.fawnoculus.warclaims.claims.ClaimManager;
-import net.fawnoculus.warclaims.teams.TeamManager;
+import net.fawnoculus.warclaims.claims.ClientClaimManager;
+import net.fawnoculus.warclaims.claims.faction.ClientFactionManager;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.util.text.ITextComponent;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class NetHandlerPlayClientMixin {
     @Inject(method = "onDisconnect", at = @At("HEAD"))
     public void afterInitializeRegistry(ITextComponent reason, CallbackInfo ci) {
-        ClaimManager.clear();
-        TeamManager.clear();
+        ClientClaimManager.clear();
+        ClientFactionManager.clear();
     }
 }

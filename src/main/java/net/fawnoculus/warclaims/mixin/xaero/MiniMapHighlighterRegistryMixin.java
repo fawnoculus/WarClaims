@@ -1,4 +1,4 @@
-package net.fawnoculus.warclaims.mixin;
+package net.fawnoculus.warclaims.mixin.xaero;
 
 import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.xaero.ClaimsMapHighlighter;
@@ -11,7 +11,7 @@ import xaero.common.mods.WorldMapHighlighter;
 
 @Mixin(HighlighterRegistry.class)
 public class MiniMapHighlighterRegistryMixin {
-    @Inject(method = "<init>", at = @At("RETURN"))
+    @Inject(method = "<init>", at = @At("RETURN"), remap = false)
     public void afterInitializeRegistry(CallbackInfo ci) {
         HighlighterRegistry registry = (HighlighterRegistry) (Object) this;
         registry.register(new WorldMapHighlighter(new ClaimsMapHighlighter()));

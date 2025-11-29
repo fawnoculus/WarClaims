@@ -12,11 +12,12 @@
   },
   "mixins": [
     "MinecraftServerMixin",
-    "MiniMapHighlighterRegistryMixin",
-    "PlayerListMixin",
-    "WorldMapHighlighterRegistryMixin"
+    "NetHandlerPlayServerMixin",
+    "xaero.MiniMapHighlighterRegistryMixin",
+    "xaero.WorldMapHighlighterRegistryMixin"
   ],
   "client": [
-    "NetHandlerPlayClientMixin"
+    "NetHandlerPlayClientMixin",
+    "xaero.GuiMapMixin"
   ]
 }
