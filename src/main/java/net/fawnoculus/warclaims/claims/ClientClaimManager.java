@@ -4,12 +4,22 @@ import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.claims.faction.ClientFactionManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.networking.messages.ClaimSyncMessage;
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import xaero.common.XaeroMinimapSession;
+import xaero.common.minimap.MinimapProcessor;
+import xaero.common.minimap.highlight.DimensionHighlighterHandler;
+import xaero.common.minimap.write.MinimapWriter;
+import xaero.map.MapProcessor;
+import xaero.map.WorldMapSession;
+import xaero.map.region.MapRegion;
+import xaero.minimap.XaeroMinimapStandaloneSession;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.HashSet;
 
 @SideOnly(Side.CLIENT)
 public class ClientClaimManager {
@@ -35,10 +45,6 @@ public class ClientClaimManager {
             dimensionClaims.put(pos, claim);
         }
 
-        // TODO: how tf do we remove Chunks from the Xaero Map Cache sp that the marker applies????
-
-        WarClaims.LOGGER.info("A: {}, {}, {}", dimension, pos, claim);
-
         CLAIMS.put(dimension, dimensionClaims);
     }
 
@@ -50,17 +56,88 @@ public class ClientClaimManager {
         return null;
     }
 
+    public static void clear() {
+        CLAIMS.clear();
+    }
+
     public static void update(ClaimSyncMessage message) {
+        int currentDimension = Integer.MIN_VALUE;
+
+        try {
+            currentDimension = Minecraft.getMinecraft().world.provider.getDimension();
+        }catch (Throwable ignored) {}
+
+        HashSet<ChunkPos> regionsToUpdate = new HashSet<>();
+
         for (Integer dimensionId : message.getMap().keySet()) {
             HashMap<ChunkPos, ClaimInstance> dimensionClaims = message.getMap().get(dimensionId);
 
             for (ChunkPos pos : dimensionClaims.keySet()) {
                 setClaim(dimensionId, pos, dimensionClaims.get(pos));
+
+                if (dimensionId == currentDimension) {
+                    regionsToUpdate.add(chunkToRegion(pos));
+                }
             }
+        }
+
+        for (ChunkPos regionPos : regionsToUpdate) {
+            updateMapRegions(regionPos.x, regionPos.z);
         }
     }
 
-    public static void clear() {
-        CLAIMS.clear();
+    private static ChunkPos chunkToRegion(ChunkPos pos) {
+        return new ChunkPos(chunkToRegion(pos.x), chunkToRegion(pos.z));
+    }
+
+    private static int chunkToRegion(int chunk) {
+        return chunk >> 5;
+    }
+
+    private static void updateMapRegions(int regionX, int regionZ) {
+        Minecraft.getMinecraft().addScheduledTask(() -> {
+            try {
+                @SuppressWarnings("deprecation")
+                XaeroMinimapSession session = XaeroMinimapStandaloneSession.getCurrentSession();
+                if (session == null) {
+                    return;
+                }
+                MinimapProcessor processor = session.getMinimapProcessor();
+                if (processor == null) {
+                    return;
+                }
+                MinimapWriter writer = processor.getMinimapWriter();
+                if (writer == null) {
+                    return;
+                }
+                DimensionHighlighterHandler handler = writer.getDimensionHighlightHandler();
+                if (handler == null) {
+                    return;
+                }
+                handler.requestRefresh(regionX, regionZ);
+            } catch (Throwable exception) {
+                WarClaims.LOGGER.warn("Exception occurred while clearing Xaero's Mini-Map Cache: ", exception);
+            }
+        });
+
+        Minecraft.getMinecraft().addScheduledTask(() -> {
+            try {
+                WorldMapSession session = WorldMapSession.getCurrentSession();
+                if (session == null) {
+                    return;
+                }
+                MapProcessor processor = session.getMapProcessor();
+                if (processor == null) {
+                    return;
+                }
+                MapRegion mapRegion = processor.getLeafMapRegion(Integer.MAX_VALUE, regionX, regionZ, false);
+                if (mapRegion == null) {
+                    return;
+                }
+                mapRegion.requestRefresh(processor, true);
+            } catch (Throwable exception) {
+                WarClaims.LOGGER.warn("Exception occurred while clearing Xaero's World-Map Cache: ", exception);
+            }
+        });
     }
 }

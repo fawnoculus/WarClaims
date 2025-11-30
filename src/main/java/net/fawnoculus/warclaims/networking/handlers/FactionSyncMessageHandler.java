@@ -1,7 +1,7 @@
 package net.fawnoculus.warclaims.networking.handlers;
 
-import net.fawnoculus.warclaims.networking.messages.FactionSyncMessage;
 import net.fawnoculus.warclaims.claims.faction.ClientFactionManager;
+import net.fawnoculus.warclaims.networking.messages.FactionSyncMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;

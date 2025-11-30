@@ -1,5 +1,6 @@
 package net.fawnoculus.warclaims.claims;
 
+import com.mojang.realmsclient.util.Pair;
 import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
@@ -10,12 +11,14 @@ import net.minecraft.util.math.ChunkPos;
 
 import javax.annotation.Nullable;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 public class ClaimManager {
     private static final HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> CLAIMS = new HashMap<>();
-    private static ClaimSyncMessage currentTickUpdates = new ClaimSyncMessage();
+    public static ClaimSyncMessage currentTickUpdates = new ClaimSyncMessage();
 
     public static @Nullable ClaimInstance getClaim(int dimension, int chunkX, int chunkZ) {
         HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
@@ -63,16 +66,37 @@ public class ClaimManager {
         CLAIMS.put(dimension, dimensionClaims);
     }
 
+    public static void removeClaimIf(Predicate<ClaimInstance> predicate) {
+        ArrayList<Pair<Integer, ChunkPos>> toRemove = new ArrayList<>();
+
+        for (Integer dimension : CLAIMS.keySet()) {
+            HashMap<ChunkPos, ClaimInstance> DimensionClaims = CLAIMS.get(dimension);
+
+            for (ChunkPos pos : DimensionClaims.keySet()) {
+                ClaimInstance claim = DimensionClaims.get(pos);
+
+                if (predicate.test(claim)) {
+                    toRemove.add(Pair.of(dimension, pos));
+                }
+            }
+        }
+
+        toRemove.forEach(pair -> CLAIMS.get(pair.first()).remove(pair.second()));
+    }
+
     public static void onTick() {
         if(!currentTickUpdates.isEmpty()) {
-            WarClaims.LOGGER.info("SENDEING MENDES: {}", currentTickUpdates.getMap());
             WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
             currentTickUpdates = new ClaimSyncMessage();
         }
     }
 
+    public static void clear() {
+        CLAIMS.clear();
+        currentTickUpdates = new ClaimSyncMessage();
+    }
+
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
-        WarClaims.LOGGER.info("WHAT THE FUCK");
         WarClaimsNetworking.WRAPPER.sendTo(new ClaimSyncMessage(CLAIMS), playerMP);
     }
 

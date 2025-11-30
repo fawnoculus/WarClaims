@@ -51,4 +51,14 @@ public class MinecraftServerMixin {
         ClaimManager.saveToFile(worldPath);
         FactionManager.saveToFile(worldPath);
     }
+
+    @Inject(method = "stopServer", at = @At("TAIL"))
+    private void onStop(CallbackInfo ci){
+        String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
+        ClaimManager.saveToFile(worldPath);
+        FactionManager.saveToFile(worldPath);
+
+        ClaimManager.clear();
+        FactionManager.clear();
+    }
 }

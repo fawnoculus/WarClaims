@@ -1,6 +1,5 @@
 package net.fawnoculus.warclaims.networking.handlers;
 
-import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
 import net.fawnoculus.warclaims.networking.messages.TryClaimMessage;
@@ -22,12 +21,12 @@ public class TryClaimMessageHandler implements IMessageHandler<TryClaimMessage, 
             return null;
         }
 
-        for (int x = message.startX; x < message.endX; x++) {
-            for (int z = message.startZ; z < message.endZ; z++) {
+        for (int x = message.startX; x <= message.endX; x++) {
+            for (int z = message.startZ; z <= message.endZ; z++) {
                 ClaimManager.claim(player.dimension, x, z, selectedTeam, 5);
             }
         }
 
-        return null;
+        return ClaimManager.currentTickUpdates;
     }
 }

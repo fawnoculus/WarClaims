@@ -11,13 +11,15 @@
     "conformVisibility": true
   },
   "mixins": [
+    "CommandSaveAllMixin",
     "MinecraftServerMixin",
     "NetHandlerPlayServerMixin",
+    "accesor.MinecraftServerAccessor",
     "xaero.MiniMapHighlighterRegistryMixin",
     "xaero.WorldMapHighlighterRegistryMixin"
   ],
   "client": [
-    "NetHandlerPlayClientMixin",
+    "MinecraftMixin",
     "xaero.GuiMapMixin"
   ]
 }

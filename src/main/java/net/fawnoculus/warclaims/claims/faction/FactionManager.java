@@ -1,6 +1,7 @@
 package net.fawnoculus.warclaims.claims.faction;
 
 import net.fawnoculus.warclaims.WarClaims;
+import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
 import net.fawnoculus.warclaims.networking.messages.FactionSyncMessage;
 import net.fawnoculus.warclaims.utils.FileUtil;
@@ -36,6 +37,8 @@ public class FactionManager {
             FACTION_BY_NAME.remove(team.name);
         }
         FACTIONS.remove(factionId);
+
+        ClaimManager.removeClaimIf(claim -> factionId.equals(claim.factionId));
     }
 
     public static @Nullable FactionInstance getFaction(UUID factionId) {
@@ -63,6 +66,13 @@ public class FactionManager {
             WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
             currentTickUpdates = new FactionSyncMessage();
         }
+    }
+
+    public static void clear() {
+        FACTIONS.clear();
+        FACTION_BY_NAME.clear();
+        SELECTED_FACTION.clear();
+        currentTickUpdates = new FactionSyncMessage();
     }
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
