@@ -82,7 +82,7 @@ public class ClientClaimManager {
         }
 
         for (ChunkPos regionPos : regionsToUpdate) {
-            updateMapRegions(regionPos.x, regionPos.z);
+            updateMapRegions(regionPos);
         }
     }
 
@@ -94,7 +94,7 @@ public class ClientClaimManager {
         return chunk >> 5;
     }
 
-    private static void updateMapRegions(int regionX, int regionZ) {
+    private static void updateMapRegions(ChunkPos region) {
         Minecraft.getMinecraft().addScheduledTask(() -> {
             try {
                 @SuppressWarnings("deprecation")
@@ -114,9 +114,9 @@ public class ClientClaimManager {
                 if (handler == null) {
                     return;
                 }
-                handler.requestRefresh(regionX, regionZ);
+                handler.requestRefresh(region.x, region.z);
             } catch (Throwable exception) {
-                WarClaims.LOGGER.warn("Exception occurred while clearing Xaero's Mini-Map Cache: ", exception);
+                WarClaims.LOGGER.warn("Exception occurred while refreshing Xaero's Mini-Map Cache: ", exception);
             }
         });
 
@@ -130,13 +130,13 @@ public class ClientClaimManager {
                 if (processor == null) {
                     return;
                 }
-                MapRegion mapRegion = processor.getLeafMapRegion(Integer.MAX_VALUE, regionX, regionZ, false);
+                MapRegion mapRegion = processor.getLeafMapRegion(Integer.MAX_VALUE, region.x, region.z, false);
                 if (mapRegion == null) {
                     return;
                 }
                 mapRegion.requestRefresh(processor, true);
             } catch (Throwable exception) {
-                WarClaims.LOGGER.warn("Exception occurred while clearing Xaero's World-Map Cache: ", exception);
+                WarClaims.LOGGER.warn("Exception occurred while refreshing Xaero's World-Map Cache: ", exception);
             }
         });
     }

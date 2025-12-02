@@ -12,6 +12,7 @@ import net.minecraft.util.math.ChunkPos;
 import javax.annotation.Nullable;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -81,7 +82,7 @@ public class ClaimManager {
             }
         }
 
-        toRemove.forEach(pair -> CLAIMS.get(pair.first()).remove(pair.second()));
+        toRemove.forEach(pair -> unclaim(pair.first(), pair.second().x, pair.second().z));
     }
 
     public static void onTick() {
@@ -108,6 +109,12 @@ public class ClaimManager {
         }
 
         try (Reader reader = new FileReader(file)) {
+            char[] fileVersion = new char[WarClaims.FILE_VERSION.length];
+            int ignored = reader.read(fileVersion);
+            if (!Arrays.equals(fileVersion, WarClaims.FILE_VERSION)) {
+                throw new RuntimeException("Incorrect File Version");
+            }
+
             int claimsSize = reader.read();
             for (int i = 0; i < claimsSize; i++) {
                 int dimensionId = reader.read();
@@ -143,6 +150,7 @@ public class ClaimManager {
         }
 
         try (FileWriter writer = new FileWriter(file)) {
+            writer.write(WarClaims.FILE_VERSION);
             writer.write(CLAIMS.size());
             for (Integer dimension : CLAIMS.keySet()) {
                 writer.write(dimension);

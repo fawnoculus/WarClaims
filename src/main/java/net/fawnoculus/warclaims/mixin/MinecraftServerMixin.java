@@ -38,8 +38,8 @@ public class MinecraftServerMixin {
         this.profiler.endSection();
     }
 
-    @Inject(method = "loadAllWorlds", at = @At("TAIL"))
-    private void onServerStart(CallbackInfo ci){
+    @Inject(method = "initialWorldChunkLoad", at = @At("TAIL"))
+    private void onLoadWorlds(CallbackInfo ci){
         String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
         ClaimManager.loadFromFile(worldPath);
         FactionManager.loadFromFile(worldPath);

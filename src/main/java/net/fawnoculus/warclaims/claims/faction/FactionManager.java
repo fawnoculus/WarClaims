@@ -9,6 +9,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 
 import javax.annotation.Nullable;
 import java.io.*;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
@@ -27,17 +28,19 @@ public class FactionManager {
 
     public static void setFaction(UUID factionId, FactionInstance team) {
         FACTIONS.put(factionId, team);
-        currentTickUpdates.setTeam(factionId, team);
         FACTION_BY_NAME.put(team.name, factionId);
+        currentTickUpdates.setTeam(factionId, team);
     }
 
     public static void removeFaction(UUID factionId) {
         FactionInstance team = FACTIONS.get(factionId);
-        if (team != null) {
-            FACTION_BY_NAME.remove(team.name);
+        if (team == null) {
+            return;
         }
-        FACTIONS.remove(factionId);
 
+        FACTIONS.remove(factionId);
+        FACTION_BY_NAME.remove(team.name);
+        currentTickUpdates.setTeam(factionId, null);
         ClaimManager.removeClaimIf(claim -> factionId.equals(claim.factionId));
     }
 
@@ -110,6 +113,12 @@ public class FactionManager {
         }
 
         try (Reader reader = new FileReader(selectedFactions)) {
+            char[] fileVersion = new char[WarClaims.FILE_VERSION.length];
+            int ignored = reader.read(fileVersion);
+            if (!Arrays.equals(fileVersion, WarClaims.FILE_VERSION)) {
+                throw new RuntimeException("Incorrect File Version");
+            }
+
             int selectedFactionSize = reader.read();
             for (int i = 0; i < selectedFactionSize; i++) {
                 UUID playerID = FileUtil.readUUID(reader);
@@ -140,6 +149,7 @@ public class FactionManager {
         }
 
         try (FileWriter writer = new FileWriter(file)) {
+            writer.write(WarClaims.FILE_VERSION);
             writer.write(FACTIONS.size());
             for (UUID factionId : FACTIONS.keySet()) {
                 FileUtil.writeUUID(writer, factionId);

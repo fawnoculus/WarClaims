@@ -1,6 +1,7 @@
 package net.fawnoculus.warclaims.claims.faction;
 
 import io.netty.buffer.ByteBuf;
+import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.utils.ColorUtil;
 import net.fawnoculus.warclaims.utils.FileUtil;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -93,31 +94,35 @@ public class FactionInstance {
         return ColorUtil.fromHSV(random.nextFloat(), .9f, .9f);
     }
 
-    public static void toWriter(Writer writer, FactionInstance claim) throws IOException {
-        FileUtil.writeUUID(writer, claim.owner);
-        writer.write(claim.color);
-        writer.write(claim.name.length());
-        writer.write(claim.name);
+    public static void toWriter(Writer writer, FactionInstance faction) throws IOException {
+        FileUtil.writeUUID(writer, faction.owner);
+        WarClaims.LOGGER.info("Writing color = R: {} G: {} B: {}", ColorUtil.getRed(faction.color), ColorUtil.getGreen(faction.color), ColorUtil.getGreen(faction.color));
+        writer.write(ColorUtil.getRed(faction.color));
+        writer.write(ColorUtil.getGreen(faction.color));
+        writer.write(ColorUtil.getGreen(faction.color));
+        writer.write(faction.name.length());
+        writer.write(faction.name);
 
-        writer.write(claim.officers.size());
-        for (UUID officer : claim.officers) {
+        writer.write(faction.officers.size());
+        for (UUID officer : faction.officers) {
             FileUtil.writeUUID(writer, officer);
         }
 
-        writer.write(claim.members.size());
-        for (UUID member : claim.members) {
+        writer.write(faction.members.size());
+        for (UUID member : faction.members) {
             FileUtil.writeUUID(writer, member);
         }
 
-        writer.write(claim.allies.size());
-        for (UUID ally : claim.allies) {
+        writer.write(faction.allies.size());
+        for (UUID ally : faction.allies) {
             FileUtil.writeUUID(writer, ally);
         }
     }
 
     public static FactionInstance fromReader(Reader reader) throws IOException {
         UUID owner = FileUtil.readUUID(reader);
-        int color = reader.read();
+        int color = ColorUtil.fromRGB(reader.read(), reader.read(), reader.read());
+        WarClaims.LOGGER.info("Read color = R: {} G: {} B: {}", ColorUtil.getRed(color), ColorUtil.getGreen(color), ColorUtil.getGreen(color));
 
         int nameLength = reader.read();
         char[] nameData = new char[nameLength];
@@ -145,30 +150,29 @@ public class FactionInstance {
         return new FactionInstance(owner, color, name, officers, members, allies);
     }
 
-    public static void toByteBuff(ByteBuf buf, FactionInstance team) {
-        buf.writeLong(team.owner.getMostSignificantBits());
-        buf.writeLong(team.owner.getLeastSignificantBits());
+    public static void toByteBuff(ByteBuf buf, FactionInstance faction) {
+        buf.writeLong(faction.owner.getMostSignificantBits());
+        buf.writeLong(faction.owner.getLeastSignificantBits());
 
-        buf.writeInt(team.color);
+        buf.writeInt(faction.color);
 
-        CharSequence name = (CharSequence) team.name;
-        buf.writeInt(name.length());
-        buf.writeCharSequence(name, StandardCharsets.UTF_8);
+        buf.writeInt(faction.name.length());
+        buf.writeCharSequence(faction.name, StandardCharsets.UTF_8);
 
-        buf.writeInt(team.officers.size());
-        for (UUID officer : team.officers) {
+        buf.writeInt(faction.officers.size());
+        for (UUID officer : faction.officers) {
             buf.writeLong(officer.getMostSignificantBits());
             buf.writeLong(officer.getLeastSignificantBits());
         }
 
-        buf.writeInt(team.members.size());
-        for (UUID member : team.members) {
+        buf.writeInt(faction.members.size());
+        for (UUID member : faction.members) {
             buf.writeLong(member.getMostSignificantBits());
             buf.writeLong(member.getLeastSignificantBits());
         }
 
-        buf.writeInt(team.allies.size());
-        for (UUID ally : team.allies) {
+        buf.writeInt(faction.allies.size());
+        for (UUID ally : faction.allies) {
             buf.writeLong(ally.getMostSignificantBits());
             buf.writeLong(ally.getLeastSignificantBits());
         }

@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 
 @Mod(modid = Tags.MOD_ID, version = Tags.MOD_VERSION, name = Tags.MOD_NAME, useMetadata = true)
 public class WarClaims {
+    public static final char[] FILE_VERSION = "WC001".toCharArray();
     public static final Logger LOGGER = LogManager.getLogger(Tags.MOD_ID);
     @SidedProxy(clientSide =  "net.fawnoculus.warclaims.WarClaimsClientProxy",
             serverSide = "net.fawnoculus.warclaims.WarClaimsCommonProxy",
