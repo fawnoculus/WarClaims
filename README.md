@@ -6,10 +6,9 @@
 
 ## What is War Claims?
 War Claims is Claim mod with War in Mind.
-This is not just the only (maybe) Claim with Xaero's World-/ MiniMap support but also ...
-I forgot how to formulate sentences... ...
-I should probably not be writing READMEs at 5 in the Morning.
-I'll finish the README later, I swear.
+This is not just the only Claim Mod (in 1.12.2) with Xaero's World-/ MiniMap support,
+but also one of the few Claim mods where you have the ability to invade claimed chunks
+allowing a more effective the simulation of country borders then regular claim mods.
 
 ## Downloading from GitHub actions
 1. Navigate to the Latest (topmost) successfully ran (green check) [Action](https://github.com/fawnoculus/WarClaims/actions/workflows/build.yml)
