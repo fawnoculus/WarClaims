@@ -2,6 +2,7 @@ package net.fawnoculus.warclaims.mixin;
 
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
+import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.NetworkManager;
@@ -17,6 +18,7 @@ public class NetHandlerPlayServerMixin {
     @Inject(method = "<init>", at = @At("RETURN"))
     private void onPlayerJoin(MinecraftServer server, NetworkManager networkManagerIn, EntityPlayerMP playerIn, CallbackInfo ci){
         ClaimManager.onPlayerJoin(playerIn);
+        InvasionManager.onPlayerJoin(playerIn);
         FactionManager.onPlayerJoin(playerIn);
     }
 }

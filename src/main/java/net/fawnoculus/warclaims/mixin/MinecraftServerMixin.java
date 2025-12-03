@@ -2,6 +2,7 @@ package net.fawnoculus.warclaims.mixin;
 
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
+import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.server.MinecraftServer;
 import org.spongepowered.asm.mixin.Final;
@@ -33,6 +34,10 @@ public class MinecraftServerMixin {
         ClaimManager.onTick();
         this.profiler.endSection();
 
+        this.profiler.startSection("[WarClaims] InvasionManager");
+        InvasionManager.onTick();
+        this.profiler.endSection();
+
         this.profiler.startSection("[WarClaims] TeamManager");
         FactionManager.onTick();
         this.profiler.endSection();
@@ -42,6 +47,7 @@ public class MinecraftServerMixin {
     private void onLoadWorlds(CallbackInfo ci){
         String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
         ClaimManager.loadFromFile(worldPath);
+        InvasionManager.loadFromFile(worldPath);
         FactionManager.loadFromFile(worldPath);
     }
 
@@ -49,6 +55,7 @@ public class MinecraftServerMixin {
     private void onSave(CallbackInfo ci){
         String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
         ClaimManager.saveToFile(worldPath);
+        InvasionManager.saveToFile(worldPath);
         FactionManager.saveToFile(worldPath);
     }
 
@@ -56,9 +63,11 @@ public class MinecraftServerMixin {
     private void onStop(CallbackInfo ci){
         String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
         ClaimManager.saveToFile(worldPath);
+        InvasionManager.saveToFile(worldPath);
         FactionManager.saveToFile(worldPath);
 
         ClaimManager.clear();
+        InvasionManager.clear();
         FactionManager.clear();
     }
 }

@@ -2,6 +2,7 @@ package net.fawnoculus.warclaims.mixin;
 
 import net.fawnoculus.warclaims.claims.ClientClaimManager;
 import net.fawnoculus.warclaims.claims.faction.ClientFactionManager;
+import net.fawnoculus.warclaims.claims.invade.ClientInvasionManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,6 +17,7 @@ public class MinecraftMixin {
     public void onLoadWorld(WorldClient worldClientIn, String loadingMessage, CallbackInfo ci) {
         if (worldClientIn == null) {
             ClientClaimManager.clear();
+            ClientInvasionManager.clear();
             ClientFactionManager.clear();
         }
     }

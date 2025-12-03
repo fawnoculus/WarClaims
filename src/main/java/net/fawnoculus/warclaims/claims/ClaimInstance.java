@@ -1,11 +1,8 @@
 package net.fawnoculus.warclaims.claims;
 
+import com.google.gson.JsonObject;
 import io.netty.buffer.ByteBuf;
-import net.fawnoculus.warclaims.utils.FileUtil;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 import java.util.UUID;
 
 public class ClaimInstance {
@@ -17,14 +14,16 @@ public class ClaimInstance {
         this.level = level;
     }
 
-    public static void toWriter(Writer writer, ClaimInstance claim) throws IOException {
-        FileUtil.writeUUID(writer, claim.factionId);
-        writer.write(claim.level);
+    public static JsonObject toJson(ClaimInstance claim) {
+        JsonObject json = new JsonObject();
+        json.addProperty("factionId", claim.factionId.toString());
+        json.addProperty("level", claim.level);
+        return json;
     }
 
-    public static ClaimInstance fromReader(Reader reader) throws IOException {
-        UUID factionId = FileUtil.readUUID(reader);
-        int level = reader.read();
+    public static ClaimInstance fromJson(JsonObject json) {
+        UUID factionId = UUID.fromString(json.get("factionId").getAsString());
+        int level = json.get("level").getAsInt();
         return new ClaimInstance(factionId, level);
     }
 

@@ -1,14 +1,13 @@
 package net.fawnoculus.warclaims.claims.faction;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import io.netty.buffer.ByteBuf;
-import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.utils.ColorUtil;
-import net.fawnoculus.warclaims.utils.FileUtil;
 import net.minecraft.entity.player.EntityPlayerMP;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Random;
@@ -47,8 +46,8 @@ public class FactionInstance {
         this.allies = allies;
     }
 
-    public boolean isAlly(EntityPlayerMP playerMP) {
-        return this.isAlly(playerMP.getGameProfile().getId());
+    public boolean isAllied(EntityPlayerMP playerMP) {
+        return this.isAllied(playerMP.getGameProfile().getId());
     }
 
     public boolean isMember(EntityPlayerMP playerMP) {
@@ -63,7 +62,7 @@ public class FactionInstance {
         return this.isOwner(playerMP.getGameProfile().getId());
     }
 
-    public boolean isAlly(UUID id) {
+    public boolean isAllied(UUID id) {
         if (this.isMember(id)) {
             return true;
         }
@@ -94,57 +93,45 @@ public class FactionInstance {
         return ColorUtil.fromHSV(random.nextFloat(), .9f, .9f);
     }
 
-    public static void toWriter(Writer writer, FactionInstance faction) throws IOException {
-        FileUtil.writeUUID(writer, faction.owner);
-        WarClaims.LOGGER.info("Writing color = R: {} G: {} B: {}", ColorUtil.getRed(faction.color), ColorUtil.getGreen(faction.color), ColorUtil.getGreen(faction.color));
-        writer.write(ColorUtil.getRed(faction.color));
-        writer.write(ColorUtil.getGreen(faction.color));
-        writer.write(ColorUtil.getGreen(faction.color));
-        writer.write(faction.name.length());
-        writer.write(faction.name);
+    public static JsonObject toJson(FactionInstance faction) {
+        JsonObject json = new JsonObject();
+        json.add("owner", new JsonPrimitive(faction.owner.toString()));
+        json.add("color", new JsonPrimitive(faction.color));
+        json.add("name", new JsonPrimitive(faction.name));
 
-        writer.write(faction.officers.size());
-        for (UUID officer : faction.officers) {
-            FileUtil.writeUUID(writer, officer);
-        }
+        JsonArray members = new JsonArray();
+        faction.members.forEach(uuid -> members.add(uuid.toString()));
+        json.add("members", members);
 
-        writer.write(faction.members.size());
-        for (UUID member : faction.members) {
-            FileUtil.writeUUID(writer, member);
-        }
+        JsonArray officers = new JsonArray();
+        faction.officers.forEach(uuid -> officers.add(uuid.toString()));
+        json.add("officers", officers);
 
-        writer.write(faction.allies.size());
-        for (UUID ally : faction.allies) {
-            FileUtil.writeUUID(writer, ally);
-        }
+        JsonArray allies = new JsonArray();
+        faction.allies.forEach(uuid -> allies.add(uuid.toString()));
+        json.add("allies", allies);
+
+        return json;
     }
 
-    public static FactionInstance fromReader(Reader reader) throws IOException {
-        UUID owner = FileUtil.readUUID(reader);
-        int color = ColorUtil.fromRGB(reader.read(), reader.read(), reader.read());
-        WarClaims.LOGGER.info("Read color = R: {} G: {} B: {}", ColorUtil.getRed(color), ColorUtil.getGreen(color), ColorUtil.getGreen(color));
-
-        int nameLength = reader.read();
-        char[] nameData = new char[nameLength];
-        int ignored = reader.read(nameData);
-        String name = new String(nameData);
+    public static FactionInstance fromJson(JsonObject json) {
+        UUID owner = UUID.fromString(json.get("owner").getAsString());
+        int color = json.get("color").getAsInt();
+        String name = json.get("name").getAsString();
 
         HashSet<UUID> officers = new HashSet<>();
-        int officerCount = reader.read();
-        for (int i = 0; i < officerCount; i++) {
-            officers.add(FileUtil.readUUID(reader));
+        for (JsonElement element : json.get("officers").getAsJsonArray()) {
+            officers.add(UUID.fromString(element.getAsString()));
         }
 
         HashSet<UUID> members = new HashSet<>();
-        int memberCount = reader.read();
-        for (int i = 0; i < memberCount; i++) {
-            members.add(FileUtil.readUUID(reader));
+        for (JsonElement element : json.get("members").getAsJsonArray()) {
+            members.add(UUID.fromString(element.getAsString()));
         }
 
         HashSet<UUID> allies = new HashSet<>();
-        int allyCount = reader.read();
-        for (int i = 0; i < allyCount; i++) {
-            allies.add(FileUtil.readUUID(reader));
+        for (JsonElement element : json.get("allies").getAsJsonArray()) {
+            allies.add(UUID.fromString(element.getAsString()));
         }
 
         return new FactionInstance(owner, color, name, officers, members, allies);

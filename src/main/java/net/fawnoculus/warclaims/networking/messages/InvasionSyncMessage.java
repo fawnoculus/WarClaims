@@ -1,30 +1,30 @@
 package net.fawnoculus.warclaims.networking.messages;
 
 import io.netty.buffer.ByteBuf;
-import net.fawnoculus.warclaims.claims.ClaimInstance;
+import net.fawnoculus.warclaims.claims.invade.InvasionInstance;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 
-public class ClaimSyncMessage implements IMessage {
-    private final HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> claims;
+public class InvasionSyncMessage implements IMessage {
+    private final HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> claims;
 
-    public ClaimSyncMessage(){
+    public InvasionSyncMessage(){
         claims = new HashMap<>();
     }
 
-    public ClaimSyncMessage(HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> claims){
+    public InvasionSyncMessage(HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> claims){
         this.claims = claims;
     }
 
-    public void setClaim(int dimension, int chunkX, int chunkZ, @Nullable ClaimInstance claim) {
+    public void setClaim(int dimension, int chunkX, int chunkZ, @Nullable InvasionInstance claim) {
         this.setClaim(dimension, new ChunkPos(chunkX, chunkZ), claim);
     }
 
-    public void setClaim(int dimension, ChunkPos pos, @Nullable ClaimInstance claim) {
-        HashMap<ChunkPos, ClaimInstance> dimensionClaims = claims.get(dimension);
+    public void setClaim(int dimension, ChunkPos pos, @Nullable InvasionInstance claim) {
+        HashMap<ChunkPos, InvasionInstance> dimensionClaims = claims.get(dimension);
         if(dimensionClaims == null) {
             dimensionClaims = new HashMap<>();
         }
@@ -32,7 +32,7 @@ public class ClaimSyncMessage implements IMessage {
         claims.put(dimension, dimensionClaims);
     }
 
-    public HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> getMap(){
+    public HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> getMap(){
         return this.claims;
     }
 
@@ -57,7 +57,7 @@ public class ClaimSyncMessage implements IMessage {
                     continue;
                 }
 
-                this.setClaim(dimensionId, chunkX, chunkZ, ClaimInstance.fromBytes(buf));
+                this.setClaim(dimensionId, chunkX, chunkZ, InvasionInstance.fromBytes(buf));
             }
         }
     }
@@ -66,13 +66,13 @@ public class ClaimSyncMessage implements IMessage {
     public void toBytes(ByteBuf buf) {
         buf.writeInt(claims.size());
         for (Integer dimensionId : claims.keySet()) {
-            HashMap<ChunkPos, ClaimInstance> dimensionClaims = claims.get(dimensionId);
+            HashMap<ChunkPos, InvasionInstance> dimensionClaims = claims.get(dimensionId);
 
             buf.writeInt(dimensionId);
             buf.writeInt(dimensionClaims.size());
 
             for (ChunkPos pos : dimensionClaims.keySet()) {
-                ClaimInstance claim = dimensionClaims.get(pos);
+                InvasionInstance claim = dimensionClaims.get(pos);
                 buf.writeInt(pos.x);
                 buf.writeInt(pos.z);
 
@@ -82,7 +82,7 @@ public class ClaimSyncMessage implements IMessage {
                 }
 
                 buf.writeBoolean(false);
-                ClaimInstance.toByteBuff(buf, claim);
+                InvasionInstance.toByteBuff(buf, claim);
             }
         }
     }

@@ -3,9 +3,11 @@ package net.fawnoculus.warclaims.networking;
 import net.fawnoculus.warclaims.Tags;
 import net.fawnoculus.warclaims.networking.handlers.ClaimSyncMessageHandler;
 import net.fawnoculus.warclaims.networking.handlers.FactionSyncMessageHandler;
+import net.fawnoculus.warclaims.networking.handlers.InvasionSyncMessageHandler;
 import net.fawnoculus.warclaims.networking.handlers.TryClaimMessageHandler;
 import net.fawnoculus.warclaims.networking.messages.ClaimSyncMessage;
 import net.fawnoculus.warclaims.networking.messages.FactionSyncMessage;
+import net.fawnoculus.warclaims.networking.messages.InvasionSyncMessage;
 import net.fawnoculus.warclaims.networking.messages.TryClaimMessage;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
@@ -19,6 +21,7 @@ public class WarClaimsNetworking {
         int id = 0;
         // Server -> Client
         WRAPPER.registerMessage(new ClaimSyncMessageHandler(), ClaimSyncMessage.class, id++, Side.CLIENT);
+        WRAPPER.registerMessage(new InvasionSyncMessageHandler(), InvasionSyncMessage.class, id++, Side.CLIENT);
         WRAPPER.registerMessage(new FactionSyncMessageHandler(), FactionSyncMessage.class, id++, Side.CLIENT);
 
 

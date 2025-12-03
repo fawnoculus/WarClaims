@@ -25,7 +25,7 @@ public class ClaimEventHandler {
         }
 
         EntityPlayerMP playerMP = (EntityPlayerMP) breakEvent.getPlayer();
-        if (!claimingFaction.isAlly(playerMP)) {
+        if (!claimingFaction.isAllied(playerMP)) {
             playerMP.sendMessage(new TextComponentString("You don't have the permission to break blocks here"));
             breakEvent.setCanceled(true);
         }
@@ -49,7 +49,7 @@ public class ClaimEventHandler {
         }
 
         EntityPlayerMP playerMP = (EntityPlayerMP) placeEvent.getEntity();
-        if (!claimingFaction.isAlly(playerMP)) {
+        if (!claimingFaction.isAllied(playerMP)) {
             playerMP.sendMessage(new TextComponentString("You don't have the permission to place blocks here"));
             placeEvent.setCanceled(true);
         }

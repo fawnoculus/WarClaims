@@ -1,16 +1,21 @@
 package net.fawnoculus.warclaims.claims.faction;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
 import net.fawnoculus.warclaims.networking.messages.FactionSyncMessage;
-import net.fawnoculus.warclaims.utils.FileUtil;
+import net.fawnoculus.warclaims.utils.JsonUtil;
 import net.minecraft.entity.player.EntityPlayerMP;
 
 import javax.annotation.Nullable;
 import java.io.*;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -60,6 +65,10 @@ public class FactionManager {
         SELECTED_FACTION.put(player.getGameProfile().getId(), factionId);
     }
 
+    public static void setSelectedFaction(UUID playerId, UUID factionId) {
+        SELECTED_FACTION.put(playerId, factionId);
+    }
+
     public static @Nullable UUID getSelectedFaction(EntityPlayerMP player) {
         return SELECTED_FACTION.get(player.getGameProfile().getId());
     }
@@ -86,20 +95,41 @@ public class FactionManager {
         // Load Factions
         FACTIONS.clear();
         FACTION_BY_NAME.clear();
-        File file = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.bin");
+        File file = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.json");
         if (!file.exists()) {
             return;
         }
 
         try (Reader reader = new FileReader(file)) {
-            int factionsSize = reader.read();
-            for (int i = 0; i < factionsSize; i++) {
-                UUID factionId = FileUtil.readUUID(reader);
-                FactionInstance faction = FactionInstance.fromReader(reader);
+            JsonObject json = JsonUtil.fromReader(reader, JsonObject.class);
+
+            if (!WarClaims.isCorrectFileVersion(json.get(WarClaims.FILE_VERSION_NAME))) {
+                WarClaims.LOGGER.warn("Trying to load Faction of different or unknown File Version, things may not go well!");
+                WarClaims.LOGGER.info("Trying Making backup of Faction, just in case");
+                try {
+                    Files.copy(file.toPath(), file.toPath().resolveSibling("factions.json.bak"), StandardCopyOption.REPLACE_EXISTING);
+                }catch (IOException exception) {
+                    WarClaims.LOGGER.warn("Failed to make Faction backup", exception);
+                    WarClaims.LOGGER.info("(Load Factions) We are just gonna continue and pretend everything is fine, surely nothing bad will happen right?");
+                }
+            }
+
+            for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
+                if (!entry.getValue().isJsonObject()) {
+                    continue;
+                }
+
+                UUID factionId;
+                FactionInstance faction;
+                try {
+                    factionId = UUID.fromString(entry.getKey());
+                    faction = FactionInstance.fromJson(entry.getValue().getAsJsonObject());
+                }catch (Throwable ignored) {
+                    continue;
+                }
 
                 setFaction(factionId, faction);
             }
-
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to load Factions: {}", e.getMessage());
             return;
@@ -107,26 +137,41 @@ public class FactionManager {
 
         // Load Faction Selections
         SELECTED_FACTION.clear();
-        File selectedFactions = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "selected-factions.bin");
+        File selectedFactions = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "selected-factions.json");
         if (!selectedFactions.exists()) {
             return;
         }
 
         try (Reader reader = new FileReader(selectedFactions)) {
-            char[] fileVersion = new char[WarClaims.FILE_VERSION.length];
-            int ignored = reader.read(fileVersion);
-            if (!Arrays.equals(fileVersion, WarClaims.FILE_VERSION)) {
-                throw new RuntimeException("Incorrect File Version");
+            JsonObject json = JsonUtil.fromReader(reader, JsonObject.class);
+
+            if (!WarClaims.isCorrectFileVersion(json.get(WarClaims.FILE_VERSION_NAME))) {
+                WarClaims.LOGGER.warn("Trying to load Selected-Faction of different or unknown File Version, things may not go well!");
+                WarClaims.LOGGER.info("Trying Making backup of Selected-Faction, just in case");
+                try {
+                    Files.copy(file.toPath(), file.toPath().resolveSibling("factions.json.bak"), StandardCopyOption.REPLACE_EXISTING);
+                }catch (IOException exception) {
+                    WarClaims.LOGGER.warn("Failed to make Selected-Faction backup", exception);
+                    WarClaims.LOGGER.info("(Load Selected-Factions) We are just gonna continue and pretend everything is fine, surely nothing bad will happen right?");
+                }
             }
 
-            int selectedFactionSize = reader.read();
-            for (int i = 0; i < selectedFactionSize; i++) {
-                UUID playerID = FileUtil.readUUID(reader);
-                UUID factionId = FileUtil.readUUID(reader);
+            for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
+                if (!entry.getValue().isJsonPrimitive() || !entry.getValue().getAsJsonPrimitive().isString()) {
+                    continue;
+                }
 
-                SELECTED_FACTION.put(playerID, factionId);
+                UUID playerId;
+                UUID factionId;
+                try {
+                    playerId = UUID.fromString(entry.getKey());
+                    factionId = UUID.fromString(entry.getValue().getAsString());
+                }catch (Throwable ignored) {
+                    continue;
+                }
+
+                setSelectedFaction(playerId, factionId);
             }
-
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to load Selected Factions: {}", e.getMessage());
         }
@@ -134,7 +179,7 @@ public class FactionManager {
 
     public static void saveToFile(String worldPath) {
         // Save Factions
-        File file = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.bin");
+        File file = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.json");
         try {
             if (!file.getParentFile().exists()) {
                 boolean ignored = file.getParentFile().mkdirs();
@@ -149,22 +194,21 @@ public class FactionManager {
         }
 
         try (FileWriter writer = new FileWriter(file)) {
-            writer.write(WarClaims.FILE_VERSION);
-            writer.write(FACTIONS.size());
-            for (UUID factionId : FACTIONS.keySet()) {
-                FileUtil.writeUUID(writer, factionId);
+            JsonObject json = new JsonObject();
+            json.add(WarClaims.FILE_VERSION_NAME, new JsonPrimitive(WarClaims.FILE_VERSION));
 
-                FactionInstance faction = FACTIONS.get(factionId);
-                FactionInstance.toWriter(writer, faction);
+            for (UUID factionID : FACTIONS.keySet()) {
+                json.add(factionID.toString(), FactionInstance.toJson(FACTIONS.get(factionID)));
             }
 
+            JsonUtil.toWriter(writer, json);
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to save Factions: {}", e.getMessage());
             return;
         }
 
         // Save Faction Selections
-        File selectedFactions = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "selected-factions.bin");
+        File selectedFactions = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "selected-factions.json");
         try {
             if (!selectedFactions.getParentFile().exists()) {
                 boolean ignored = selectedFactions.getParentFile().mkdirs();
@@ -179,13 +223,15 @@ public class FactionManager {
         }
 
         try (FileWriter writer = new FileWriter(selectedFactions)) {
-            writer.write(SELECTED_FACTION.size());
+            JsonObject json = new JsonObject();
+            json.add(WarClaims.FILE_VERSION_NAME, new JsonPrimitive(WarClaims.FILE_VERSION));
+
             for (UUID playerID : SELECTED_FACTION.keySet()) {
                 UUID selectedTeam = SELECTED_FACTION.get(playerID);
-                FileUtil.writeUUID(writer, playerID);
-                FileUtil.writeUUID(writer, selectedTeam);
+                json.add(playerID.toString(), new JsonPrimitive(selectedTeam.toString()));
             }
 
+            JsonUtil.toWriter(writer, json);
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to save Selected Factions: {}", e.getMessage());
         }

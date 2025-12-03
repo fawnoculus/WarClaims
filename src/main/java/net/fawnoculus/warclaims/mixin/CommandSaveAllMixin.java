@@ -2,6 +2,7 @@ package net.fawnoculus.warclaims.mixin;
 
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
+import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.fawnoculus.warclaims.mixin.accesor.MinecraftServerAccessor;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.command.server.CommandSaveAll;
@@ -20,6 +21,7 @@ public class CommandSaveAllMixin {
     private void onExecute(MinecraftServer server, ICommandSender sender, String[] args, CallbackInfo ci){
         String worldPath = ((MinecraftServerAccessor) server).WarClaims$getAnvilFile().getAbsolutePath() + File.separatorChar + server.getFolderName();
         ClaimManager.saveToFile(worldPath);
+        InvasionManager.saveToFile(worldPath);
         FactionManager.saveToFile(worldPath);
     }
 }
