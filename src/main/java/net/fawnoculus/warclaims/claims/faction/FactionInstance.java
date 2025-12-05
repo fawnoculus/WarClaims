@@ -46,10 +46,6 @@ public class FactionInstance {
         this.allies = allies;
     }
 
-    private static int randomColor(Random random) {
-        return ColorUtil.fromHSV(random.nextFloat(), .9f, .9f);
-    }
-
     public static JsonObject toJson(FactionInstance faction) {
         JsonObject json = new JsonObject();
         json.add("owner", new JsonPrimitive(faction.owner.toString()));
@@ -149,6 +145,37 @@ public class FactionInstance {
         }
 
         return new FactionInstance(owner, color, name, officers, members, allies);
+    }
+
+    public FactionInstance withName(String newName) {
+        return new FactionInstance(this.owner, this.color, newName, this.officers, this.members, this.allies);
+    }
+
+    public FactionInstance withColor(int newColor) {
+        return new FactionInstance(this.owner, newColor, this.name, this.officers, this.members, this.allies);
+    }
+
+    public FactionInstance withOwner(UUID newOwner) {
+        return new FactionInstance(newOwner, this.color, this.name, this.officers, this.members, this.allies);
+    }
+
+    private static int randomColor(Random random) {
+        return ColorUtil.fromHSV(random.nextFloat(), .9f, .9f);
+    }
+
+    public void setStatusNone(UUID uuid) {
+        this.officers.remove(uuid);
+        this.members.remove(uuid);
+    }
+
+    public void setStatusMember(UUID uuid) {
+        this.officers.remove(uuid);
+        this.members.add(uuid);
+    }
+
+    public void setStatusOfficer(UUID uuid) {
+        this.officers.add(uuid);
+        this.members.remove(uuid);
     }
 
     public boolean isAllied(EntityPlayerMP playerMP) {

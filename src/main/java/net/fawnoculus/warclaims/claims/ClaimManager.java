@@ -71,6 +71,14 @@ public class ClaimManager {
         currentTickUpdates.setClaim(dimension, chunkX, chunkZ, null);
     }
 
+    public static void unclaim(int dimension, ChunkPos pos) {
+        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS
+                .computeIfAbsent(dimension, ignored -> new HashMap<>());
+
+        dimensionClaims.remove(pos);
+        currentTickUpdates.setClaim(dimension, pos, null);
+    }
+
     public static void removeClaimIf(Predicate<ClaimInstance> predicate) {
         ArrayList<Pair<Integer, ChunkPos>> toRemove = new ArrayList<>();
 
@@ -86,7 +94,9 @@ public class ClaimManager {
             }
         }
 
-        toRemove.forEach(pair -> unclaim(pair.first(), pair.second().x, pair.second().z));
+        for (Pair<Integer, ChunkPos> pair : toRemove) {
+            unclaim(pair.first(), pair.second());
+        }
     }
 
     /**

@@ -27,17 +27,13 @@ public class FactionCommand extends CommandBase {
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "/faction <create, delete, set-current, list-all, accept-invite> (Use /current-team to modify stuff)";
+        return "/faction <create, delete, set-current, list-all> (Use /current-team to modify stuff)";
     }
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if (args.length < 1) {
-            throw new SyntaxErrorException("possible options: <create, delete, set-current, accept-invite>");
-        }
-
-        if (args[0].equals("accept-invite")) {
-            throw new SyntaxErrorException("mendes (TODO)"); // TODO
+            throw new SyntaxErrorException("possible options: <create, delete, set-current>");
         }
 
         if (args[0].equals("list-all")) {
@@ -66,10 +62,6 @@ public class FactionCommand extends CommandBase {
             FactionInstance team = FactionManager.getFaction(uuid);
             if (team == null) {
                 throw new CommandException("Not team with uuid '" + uuid + "' exists, how?????");
-            }
-
-            if (!team.isMember(playerMP)) {
-                throw new CommandException("You are not a member of '" + args[1] + "' you cannot select it");
             }
 
             FactionManager.setSelectedFaction(playerMP, uuid);
@@ -112,7 +104,7 @@ public class FactionCommand extends CommandBase {
                 throw new CommandException("Not team with uuid '" + uuid + "' exists, how?????");
             }
 
-            if (!team.isOfficer(playerMP)) {
+            if (!team.isOwner(playerMP)) {
                 throw new CommandException("Only the owner of a team can delete it. you don't own " + args[1]);
             }
 

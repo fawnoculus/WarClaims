@@ -1,5 +1,6 @@
 package net.fawnoculus.warclaims.claims.faction;
 
+import net.fawnoculus.warclaims.claims.ClientClaimManager;
 import net.fawnoculus.warclaims.networking.messages.FactionSyncMessage;
 
 import javax.annotation.Nullable;
@@ -20,6 +21,10 @@ public class ClientFactionManager {
             if (team == null) {
                 TEAMS.remove(uuid);
                 continue;
+            }
+
+            if (TEAMS.containsKey(uuid)) {
+                ClientClaimManager.updateClaimIf(claim -> claim.factionId.equals(uuid));
             }
 
             TEAMS.put(uuid, team);

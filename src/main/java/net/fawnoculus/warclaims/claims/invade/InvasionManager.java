@@ -87,7 +87,9 @@ public class InvasionManager {
             }
         }
 
-        toRemove.forEach(pair -> unInvade(pair.first(), pair.second()));
+        for (Pair<Integer, ChunkPos> pair : toRemove) {
+            unInvade(pair.first(), pair.second());
+        }
     }
 
     /**
@@ -104,7 +106,7 @@ public class InvasionManager {
             switch (level) {
                 case 0:
                 case 1:
-                case 2: return 5 * 60 * 20 ;
+                case 2: return 5 * 60 * 20;
                 case 3: return 10 * 60 * 20;
                 case 4: return 30 * 60 * 20;
                 case 5: return 60 * 60 * 20;

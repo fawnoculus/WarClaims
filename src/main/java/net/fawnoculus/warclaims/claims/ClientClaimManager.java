@@ -20,6 +20,7 @@ import xaero.minimap.XaeroMinimapStandaloneSession;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.function.Predicate;
 
 @SideOnly(Side.CLIENT)
 public class ClientClaimManager {
@@ -61,7 +62,7 @@ public class ClientClaimManager {
     }
 
     public static void update(ClaimSyncMessage message) {
-        int currentDimension = Integer.MIN_VALUE;
+        int currentDimension = 0;
 
         try {
             currentDimension = Minecraft.getMinecraft().world.provider.getDimension();
@@ -77,6 +78,36 @@ public class ClientClaimManager {
                 setClaim(dimensionId, pos, dimensionClaims.get(pos));
 
                 if (dimensionId == currentDimension) {
+                    regionsToUpdate.add(chunkToRegion(pos));
+                }
+            }
+        }
+
+        for (ChunkPos regionPos : regionsToUpdate) {
+            updateMapRegions(regionPos);
+        }
+    }
+
+    public static void updateClaimIf(Predicate<ClaimInstance> predicate) {
+        int currentDimension = 0;
+
+        try {
+            currentDimension = Minecraft.getMinecraft().world.provider.getDimension();
+        } catch (Throwable ignored) {
+        }
+
+        HashSet<ChunkPos> regionsToUpdate = new HashSet<>();
+
+        for (Integer dimension : CLAIMS.keySet()) {
+            if (dimension != currentDimension) {
+                continue;
+            }
+            HashMap<ChunkPos, ClaimInstance> DimensionClaims = CLAIMS.get(dimension);
+
+            for (ChunkPos pos : DimensionClaims.keySet()) {
+                ClaimInstance claim = DimensionClaims.get(pos);
+
+                if (predicate.test(claim)) {
                     regionsToUpdate.add(chunkToRegion(pos));
                 }
             }

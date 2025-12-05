@@ -3,6 +3,10 @@ package net.fawnoculus.warclaims.utils;
 // In more modern versions these where ordered as Alpha Red Green Blue,
 // here they are in the inverse order for some reason (Blue Green Red Alpha)
 public class ColorUtil {
+    public static String getRGB(int argb) {
+        return String.format("[R: %1$d G: %2$d B: %3$d]", getRed(argb), getGreen(argb), getBlue(argb));
+    }
+
     public static int getAlpha(int argb) {
         return argb & 0xFF;
     }
