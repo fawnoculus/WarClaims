@@ -11,28 +11,28 @@ import java.util.HashMap;
 public class InvasionSyncMessage implements IMessage {
     private final HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> claims;
 
-    public InvasionSyncMessage(){
+    public InvasionSyncMessage() {
         claims = new HashMap<>();
     }
 
-    public InvasionSyncMessage(HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> claims){
+    public InvasionSyncMessage(HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> claims) {
         this.claims = claims;
     }
 
-    public void setClaim(int dimension, int chunkX, int chunkZ, @Nullable InvasionInstance claim) {
-        this.setClaim(dimension, new ChunkPos(chunkX, chunkZ), claim);
+    public void setInvasion(int dimension, int chunkX, int chunkZ, @Nullable InvasionInstance claim) {
+        this.setInvasion(dimension, new ChunkPos(chunkX, chunkZ), claim);
     }
 
-    public void setClaim(int dimension, ChunkPos pos, @Nullable InvasionInstance claim) {
+    public void setInvasion(int dimension, ChunkPos pos, @Nullable InvasionInstance claim) {
         HashMap<ChunkPos, InvasionInstance> dimensionClaims = claims.get(dimension);
-        if(dimensionClaims == null) {
+        if (dimensionClaims == null) {
             dimensionClaims = new HashMap<>();
         }
         dimensionClaims.put(pos, claim);
         claims.put(dimension, dimensionClaims);
     }
 
-    public HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> getMap(){
+    public HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> getMap() {
         return this.claims;
     }
 
@@ -52,12 +52,12 @@ public class InvasionSyncMessage implements IMessage {
                 int chunkZ = buf.readInt();
                 boolean isNull = buf.readBoolean();
 
-                if(isNull) {
-                    this.setClaim(dimensionId, chunkX, chunkZ, null);
+                if (isNull) {
+                    this.setInvasion(dimensionId, chunkX, chunkZ, null);
                     continue;
                 }
 
-                this.setClaim(dimensionId, chunkX, chunkZ, InvasionInstance.fromBytes(buf));
+                this.setInvasion(dimensionId, chunkX, chunkZ, InvasionInstance.fromBytes(buf));
             }
         }
     }
@@ -76,7 +76,7 @@ public class InvasionSyncMessage implements IMessage {
                 buf.writeInt(pos.x);
                 buf.writeInt(pos.z);
 
-                if(claim == null) {
+                if (claim == null) {
                     buf.writeBoolean(true);
                     continue;
                 }

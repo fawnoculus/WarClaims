@@ -29,7 +29,7 @@ public class MinecraftServerMixin {
     private String folderName;
 
     @Inject(method = "tick", at = @At("TAIL"))
-    private void onTick(CallbackInfo ci){
+    private void onTick(CallbackInfo ci) {
         this.profiler.startSection("[WarClaims] ClaimManager");
         ClaimManager.onTick();
         this.profiler.endSection();
@@ -44,7 +44,7 @@ public class MinecraftServerMixin {
     }
 
     @Inject(method = "initialWorldChunkLoad", at = @At("TAIL"))
-    private void onLoadWorlds(CallbackInfo ci){
+    private void onLoadWorlds(CallbackInfo ci) {
         String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
         ClaimManager.loadFromFile(worldPath);
         InvasionManager.loadFromFile(worldPath);
@@ -52,7 +52,7 @@ public class MinecraftServerMixin {
     }
 
     @Inject(method = "saveAllWorlds", at = @At("TAIL"))
-    private void onSave(CallbackInfo ci){
+    private void onSave(CallbackInfo ci) {
         String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
         ClaimManager.saveToFile(worldPath);
         InvasionManager.saveToFile(worldPath);
@@ -60,7 +60,7 @@ public class MinecraftServerMixin {
     }
 
     @Inject(method = "stopServer", at = @At("TAIL"))
-    private void onStop(CallbackInfo ci){
+    private void onStop(CallbackInfo ci) {
         String worldPath = this.anvilFile.getAbsolutePath() + File.separatorChar + this.folderName;
         ClaimManager.saveToFile(worldPath);
         InvasionManager.saveToFile(worldPath);

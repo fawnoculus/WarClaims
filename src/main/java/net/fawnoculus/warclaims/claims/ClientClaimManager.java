@@ -27,7 +27,7 @@ public class ClientClaimManager {
 
     public static @Nullable ClaimInstance get(int dimension, int chunkX, int chunkZ) {
         HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
-        if(dimensionClaims == null) {
+        if (dimensionClaims == null) {
             return null;
         }
         return dimensionClaims.get(new ChunkPos(chunkX, chunkZ));
@@ -35,7 +35,7 @@ public class ClientClaimManager {
 
     private static void setClaim(int dimension, ChunkPos pos, ClaimInstance claim) {
         HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
-        if(dimensionClaims == null) {
+        if (dimensionClaims == null) {
             dimensionClaims = new HashMap<>();
         }
 
@@ -65,7 +65,8 @@ public class ClientClaimManager {
 
         try {
             currentDimension = Minecraft.getMinecraft().world.provider.getDimension();
-        }catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
 
         HashSet<ChunkPos> regionsToUpdate = new HashSet<>();
 

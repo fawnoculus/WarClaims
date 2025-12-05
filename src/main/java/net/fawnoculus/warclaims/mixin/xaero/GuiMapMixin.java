@@ -1,6 +1,7 @@
 package net.fawnoculus.warclaims.mixin.xaero;
 
 import net.fawnoculus.warclaims.xaero.ClaimChunkOption;
+import net.fawnoculus.warclaims.xaero.InvadeChunkOption;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -28,5 +29,6 @@ public class GuiMapMixin {
 
         ArrayList<RightClickOption> options = cir.getReturnValue();
         options.add(new ClaimChunkOption(options.size(), (IRightClickableElement) this, startX, endX, startZ, endZ));
+        options.add(new InvadeChunkOption(options.size(), (IRightClickableElement) this, startX, endX, startZ, endZ));
     }
 }

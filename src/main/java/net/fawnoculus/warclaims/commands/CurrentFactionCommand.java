@@ -28,7 +28,7 @@ public class CurrentFactionCommand extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        throw  new CommandException("TODO: this"); // TODO: this
+        throw new CommandException("TODO: this"); // TODO: this
     }
 
     @Override
@@ -38,11 +38,11 @@ public class CurrentFactionCommand extends CommandBase {
 
     @Override
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, @Nullable BlockPos targetPos) {
-        if(args.length == 1) {
+        if (args.length == 1) {
             return getListOfStringsMatchingLastWord(args, POSSIBLE_SUB_COMMANDS);
         }
 
-        if(args.length == 2) {
+        if (args.length == 2) {
             if (args[0].equals("modify")) {
                 return getListOfStringsMatchingLastWord(args, MODIFY_SUB_COMMANDS);
             }

@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class NetHandlerPlayServerMixin {
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void onPlayerJoin(MinecraftServer server, NetworkManager networkManagerIn, EntityPlayerMP playerIn, CallbackInfo ci){
+    private void onPlayerJoin(MinecraftServer server, NetworkManager networkManagerIn, EntityPlayerMP playerIn, CallbackInfo ci) {
         ClaimManager.onPlayerJoin(playerIn);
         InvasionManager.onPlayerJoin(playerIn);
         FactionManager.onPlayerJoin(playerIn);

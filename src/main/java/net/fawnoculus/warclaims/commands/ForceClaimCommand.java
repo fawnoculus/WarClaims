@@ -32,11 +32,7 @@ public class ForceClaimCommand extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        if (!(sender.getCommandSenderEntity() instanceof EntityPlayerMP)) {
-            throw new CommandException("Must be executed by a Player");
-        }
-
-        EntityPlayerMP player = (EntityPlayerMP) sender.getCommandSenderEntity();
+        EntityPlayerMP playerMP = getCommandSenderAsPlayer(sender);
 
         if (args.length < 3) {
             throw new SyntaxErrorException("Not enough arguments, force-claim <chunk-x> <chunk-z> <level>");
@@ -50,45 +46,45 @@ public class ForceClaimCommand extends CommandBase {
         int chunkZ;
         int level;
 
-        if(args[0].equals("~")) {
+        if (args[0].equals("~")) {
             chunkX = sender.getPosition().getX() >> 4;
         } else {
             try {
                 chunkX = Integer.parseInt(args[0]);
-            }catch (NumberFormatException ignored) {
+            } catch (NumberFormatException ignored) {
                 throw new NumberInvalidException("chunk-x invalid");
             }
         }
 
-        if(args[1].equals("~")) {
+        if (args[1].equals("~")) {
             chunkZ = sender.getPosition().getZ() >> 4;
         } else {
             try {
                 chunkZ = Integer.parseInt(args[1]);
-            }catch (NumberFormatException ignored) {
+            } catch (NumberFormatException ignored) {
                 throw new NumberInvalidException("chunk-z invalid");
             }
         }
 
-            try {
-                level = Integer.parseInt(args[2]);
-            } catch (NumberFormatException ignored) {
-                throw new NumberInvalidException("level invalid");
-            }
+        try {
+            level = Integer.parseInt(args[2]);
+        } catch (NumberFormatException ignored) {
+            throw new NumberInvalidException("level invalid");
+        }
 
-        UUID selectedTeam = FactionManager.getSelectedFaction(player);
+        UUID selectedTeam = FactionManager.getSelectedFaction(playerMP);
         if (selectedTeam == null) {
             throw new CommandException("You must select or create a faction with /faction");
         }
 
-        ClaimManager.claim(player.dimension, chunkX, chunkZ, selectedTeam, level);
+        ClaimManager.claim(playerMP.dimension, chunkX, chunkZ, selectedTeam, level);
         sender.sendMessage(new TextComponentString("Claimed chunk at " + chunkX + " " + chunkZ + " at level " + level + " for selected Team"));
     }
 
     @Override
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, @Nullable BlockPos targetPos) {
         if (args.length < 3) {
-            return getListOfStringsMatchingLastWord(args, ImmutableList.of("~"));
+            return getListOfStringsMatchingLastWord(args, ImmutableList.of("~", "-2", "0", "100", "420", "666"));
         }
 
         if (args.length == 3) {

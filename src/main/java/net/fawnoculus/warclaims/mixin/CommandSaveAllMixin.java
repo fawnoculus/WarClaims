@@ -18,7 +18,7 @@ import java.io.File;
 public class CommandSaveAllMixin {
 
     @Inject(method = "execute", at = @At("HEAD"))
-    private void onExecute(MinecraftServer server, ICommandSender sender, String[] args, CallbackInfo ci){
+    private void onExecute(MinecraftServer server, ICommandSender sender, String[] args, CallbackInfo ci) {
         String worldPath = ((MinecraftServerAccessor) server).WarClaims$getAnvilFile().getAbsolutePath() + File.separatorChar + server.getFolderName();
         ClaimManager.saveToFile(worldPath);
         InvasionManager.saveToFile(worldPath);

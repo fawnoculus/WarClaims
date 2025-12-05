@@ -10,7 +10,11 @@ import net.fawnoculus.warclaims.claims.faction.FactionManager;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
 import net.fawnoculus.warclaims.networking.messages.ClaimSyncMessage;
 import net.fawnoculus.warclaims.utils.JsonUtil;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.ChunkPos;
 
 import javax.annotation.Nullable;
@@ -29,7 +33,7 @@ public class ClaimManager {
 
     public static @Nullable ClaimInstance getClaim(int dimension, int chunkX, int chunkZ) {
         HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
-        if(dimensionClaims == null) {
+        if (dimensionClaims == null) {
             return null;
         }
         return dimensionClaims.get(new ChunkPos(chunkX, chunkZ));
@@ -85,8 +89,42 @@ public class ClaimManager {
         toRemove.forEach(pair -> unclaim(pair.first(), pair.second().x, pair.second().z));
     }
 
+    /**
+     * Takes the Items required to claim a Chunk at the specified level out of the players inventory
+     * @return true if the player had enough Resources, false if they didn't
+     */
+    public static boolean takeRequiredItems(EntityPlayer player, int level) {
+        Pair<Item, Integer> pair = getRequiredItem(level);
+        for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
+            ItemStack stack = player.inventory.getStackInSlot(i);
+            if (stack.getItem() != pair.first()) {
+                continue;
+            }
+            if (stack.getCount() >= pair.second()) {
+                stack.shrink(pair.second());
+                stack.isEmpty();
+                return true;
+            }
+
+        }
+
+        return false;
+    }
+
+    public static Pair<Item, Integer> getRequiredItem(int level) {
+        switch (level) {
+            case 0: return Pair.of(Items.IRON_INGOT, 1);
+            case 1: return Pair.of(Items.IRON_INGOT, 4);
+            case 2: return Pair.of(Items.GOLD_INGOT, 1);
+            case 3: return Pair.of(Items.GOLD_INGOT, 4);
+            case 4: return Pair.of(Items.DIAMOND, 4);
+            case 5: return Pair.of(Items.DIAMOND, 32);
+            default: return Pair.of(Items.AIR, 0);
+        }
+    }
+
     public static void onTick() {
-        if(!currentTickUpdates.isEmpty()) {
+        if (!currentTickUpdates.isEmpty()) {
             WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
             currentTickUpdates = new ClaimSyncMessage();
         }
@@ -116,7 +154,7 @@ public class ClaimManager {
                 WarClaims.LOGGER.info("Trying Making backup of Claims, just in case");
                 try {
                     Files.copy(file.toPath(), file.toPath().resolveSibling("claims.json.bak"), StandardCopyOption.REPLACE_EXISTING);
-                }catch (IOException exception) {
+                } catch (IOException exception) {
                     WarClaims.LOGGER.warn("Failed to make Claims backup", exception);
                     WarClaims.LOGGER.info("(Load Claims) We are just gonna continue and pretend everything is fine, surely nothing bad will happen right?");
                 }
@@ -130,7 +168,7 @@ public class ClaimManager {
                 int dimension;
                 try {
                     dimension = Integer.parseInt(entry.getKey());
-                }catch (NumberFormatException ignored) {
+                } catch (NumberFormatException ignored) {
                     continue;
                 }
 
@@ -147,7 +185,7 @@ public class ClaimManager {
                     try {
                         pos = JsonUtil.toChunkPos(dimensionEntry.getKey());
                         claim = ClaimInstance.fromJson(dimensionEntry.getValue().getAsJsonObject());
-                    }catch (Throwable ignored) {
+                    } catch (Throwable ignored) {
                         continue;
                     }
 
@@ -166,7 +204,7 @@ public class ClaimManager {
             if (!file.getParentFile().exists()) {
                 boolean ignored = file.getParentFile().mkdirs();
             }
-            if(file.exists()) {
+            if (file.exists()) {
                 boolean ignored = file.delete();
             }
             boolean ignored = file.createNewFile();

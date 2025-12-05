@@ -10,6 +10,7 @@ import net.fawnoculus.warclaims.claims.faction.FactionManager;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
 import net.fawnoculus.warclaims.networking.messages.InvasionSyncMessage;
 import net.fawnoculus.warclaims.utils.JsonUtil;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.ChunkPos;
 
@@ -17,7 +18,10 @@ import javax.annotation.Nullable;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 public class InvasionManager {
@@ -26,7 +30,7 @@ public class InvasionManager {
 
     public static @Nullable InvasionInstance getClaim(int dimension, int chunkX, int chunkZ) {
         HashMap<ChunkPos, InvasionInstance> dimensionInvasions = INVASIONS.get(dimension);
-        if(dimensionInvasions == null) {
+        if (dimensionInvasions == null) {
             return null;
         }
         return dimensionInvasions.get(new ChunkPos(chunkX, chunkZ));
@@ -41,30 +45,34 @@ public class InvasionManager {
         return FactionManager.getFaction(invasion.factionId);
     }
 
-    public static void invasion(int dimension, int chunkX, int chunkZ, UUID factionId, int level) {
-        setClaim(dimension, chunkX, chunkZ, new InvasionInstance(factionId, level));
+    public static void invade(int dimension, int chunkX, int chunkZ, UUID factionId) {
+        setInvasion(dimension, chunkX, chunkZ, new InvasionInstance(factionId));
     }
 
-    public static void setClaim(int dimension, int chunkX, int chunkZ, InvasionInstance invasion) {
-        setClaim(dimension, new ChunkPos(chunkX, chunkZ), invasion);
+    public static void setInvasion(int dimension, int chunkX, int chunkZ, InvasionInstance invasion) {
+        setInvasion(dimension, new ChunkPos(chunkX, chunkZ), invasion);
     }
 
-    public static void setClaim(int dimension, ChunkPos pos, InvasionInstance invasion) {
+    public static void setInvasion(int dimension, ChunkPos pos, InvasionInstance invasion) {
         HashMap<ChunkPos, InvasionInstance> dimensionInvasions = INVASIONS
                 .computeIfAbsent(dimension, ignored -> new HashMap<>());
         dimensionInvasions.put(pos, invasion);
-        currentTickUpdates.setClaim(dimension, pos, invasion);
+        currentTickUpdates.setInvasion(dimension, pos, invasion);
     }
 
-    public static void unclaim(int dimension, int chunkX, int chunkZ) {
+    public static void unInvade(int dimension, int chunkX, int chunkZ) {
+        unInvade(dimension, new ChunkPos(chunkX, chunkZ));
+    }
+
+    public static void unInvade(int dimension, ChunkPos pos) {
         HashMap<ChunkPos, InvasionInstance> dimensionInvasions = INVASIONS
                 .computeIfAbsent(dimension, ignored -> new HashMap<>());
 
-        dimensionInvasions.remove(new ChunkPos(chunkX, chunkZ));
-        currentTickUpdates.setClaim(dimension, chunkX, chunkZ, null);
+        dimensionInvasions.remove(pos);
+        currentTickUpdates.setInvasion(dimension, pos, null);
     }
 
-    public static void removeClaimIf(Predicate<InvasionInstance> predicate) {
+    public static void removeInvasionIf(Predicate<InvasionInstance> predicate) {
         ArrayList<Pair<Integer, ChunkPos>> toRemove = new ArrayList<>();
 
         for (Integer dimension : INVASIONS.keySet()) {
@@ -79,11 +87,64 @@ public class InvasionManager {
             }
         }
 
-        toRemove.forEach(pair -> unclaim(pair.first(), pair.second().x, pair.second().z));
+        toRemove.forEach(pair -> unInvade(pair.first(), pair.second()));
+    }
+
+    /**
+     * Takes the Items required to invade a Chunk out of the players inventory
+     * @return true if the player had enough Resources, false if they didn't
+     */
+    public static boolean takeRequiredItems(EntityPlayer player) {
+        // TODO
+        return true;
+    }
+
+    public static long getInvasionTime(int level, boolean isOffline) {
+        if (isOffline) {
+            switch (level) {
+                case 0:
+                case 1:
+                case 2: return 5 * 60 * 20 ;
+                case 3: return 10 * 60 * 20;
+                case 4: return 30 * 60 * 20;
+                case 5: return 60 * 60 * 20;
+            }
+        }
+
+        switch (level) {
+            case 0: return 60 * 20;
+            case 1: return 2 * 60 * 20;
+            case 2: return 4 * 60 * 20;
+            case 3: return 6 * 60 * 20;
+            case 4: return 10 * 60 * 20;
+            case 5: return 15 * 60 * 20;
+        }
+
+        return 0;
     }
 
     public static void onTick() {
-        if(!currentTickUpdates.isEmpty()) {
+        ArrayList<Pair<Integer, ChunkPos>> toRemove = new ArrayList<>();
+
+        for (Map.Entry<Integer, HashMap<ChunkPos, InvasionInstance>> entry : INVASIONS.entrySet()) {
+            for (Map.Entry<ChunkPos, InvasionInstance> dimensionEntry : entry.getValue().entrySet()) {
+                InvasionInstance updatedInvasion = dimensionEntry.getValue().onTick(entry.getKey(), dimensionEntry.getKey());
+
+                if (updatedInvasion == null) {
+                    toRemove.add(Pair.of(entry.getKey(), dimensionEntry.getKey()));
+                    continue;
+                }
+
+                if (dimensionEntry.getValue().isDifferent(updatedInvasion)) {
+                    dimensionEntry.setValue(updatedInvasion);
+                    currentTickUpdates.setInvasion(entry.getKey(), dimensionEntry.getKey(), updatedInvasion);
+                }
+            }
+        }
+
+        toRemove.forEach(pair -> unInvade(pair.first(), pair.second()));
+
+        if (!currentTickUpdates.isEmpty()) {
             WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
             currentTickUpdates = new InvasionSyncMessage();
         }
@@ -113,7 +174,7 @@ public class InvasionManager {
                 WarClaims.LOGGER.info("Trying Making backup of Invasions, just in case");
                 try {
                     Files.copy(file.toPath(), file.toPath().resolveSibling("invasions.json.bak"), StandardCopyOption.REPLACE_EXISTING);
-                }catch (IOException exception) {
+                } catch (IOException exception) {
                     WarClaims.LOGGER.warn("Failed to make Invasions backup", exception);
                     WarClaims.LOGGER.info("(Load Invasions) We are just gonna continue and pretend everything is fine, surely nothing bad will happen right?");
                 }
@@ -127,7 +188,7 @@ public class InvasionManager {
                 int dimension;
                 try {
                     dimension = Integer.parseInt(entry.getKey());
-                }catch (NumberFormatException ignored) {
+                } catch (NumberFormatException ignored) {
                     continue;
                 }
 
@@ -144,11 +205,11 @@ public class InvasionManager {
                     try {
                         pos = JsonUtil.toChunkPos(dimensionEntry.getKey());
                         invasion = InvasionInstance.fromJson(dimensionEntry.getValue().getAsJsonObject());
-                    }catch (Throwable ignored) {
+                    } catch (Throwable ignored) {
                         continue;
                     }
 
-                    setClaim(dimension, pos, invasion);
+                    setInvasion(dimension, pos, invasion);
                 }
             }
 
@@ -163,7 +224,7 @@ public class InvasionManager {
             if (!file.getParentFile().exists()) {
                 boolean ignored = file.getParentFile().mkdirs();
             }
-            if(file.exists()) {
+            if (file.exists()) {
                 boolean ignored = file.delete();
             }
             boolean ignored = file.createNewFile();

@@ -24,7 +24,7 @@ public class ClientInvasionManager {
 
     public static @Nullable InvasionInstance get(int dimension, int chunkX, int chunkZ) {
         HashMap<ChunkPos, InvasionInstance> dimensionClaims = INVASIONS.get(dimension);
-        if(dimensionClaims == null) {
+        if (dimensionClaims == null) {
             return null;
         }
         return dimensionClaims.get(new ChunkPos(chunkX, chunkZ));
@@ -32,7 +32,7 @@ public class ClientInvasionManager {
 
     private static void setInvasion(int dimension, ChunkPos pos, InvasionInstance claim) {
         HashMap<ChunkPos, InvasionInstance> dimensionClaims = INVASIONS.get(dimension);
-        if(dimensionClaims == null) {
+        if (dimensionClaims == null) {
             dimensionClaims = new HashMap<>();
         }
 
@@ -62,7 +62,8 @@ public class ClientInvasionManager {
 
         try {
             currentDimension = Minecraft.getMinecraft().world.provider.getDimension();
-        }catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
 
         HashSet<ChunkPos> regionsToUpdate = new HashSet<>();
 

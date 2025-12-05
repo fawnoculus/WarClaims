@@ -49,7 +49,7 @@ public class FactionCommand extends CommandBase {
         }
 
         if (args[0].equals("set-current")) {
-            if(!(sender.getCommandSenderEntity() instanceof EntityPlayerMP)) {
+            if (!(sender.getCommandSenderEntity() instanceof EntityPlayerMP)) {
                 throw new CommandException("must be executed by a player");
             }
             EntityPlayerMP playerMP = (EntityPlayerMP) sender.getCommandSenderEntity();
@@ -78,7 +78,7 @@ public class FactionCommand extends CommandBase {
         }
 
         if (args[0].equals("create")) {
-            if(!(sender.getCommandSenderEntity() instanceof EntityPlayerMP)) {
+            if (!(sender.getCommandSenderEntity() instanceof EntityPlayerMP)) {
                 throw new CommandException("must be executed by a player");
             }
             EntityPlayerMP playerMP = (EntityPlayerMP) sender.getCommandSenderEntity();
@@ -93,7 +93,7 @@ public class FactionCommand extends CommandBase {
         }
 
         if (args[0].equals("delete")) {
-            if(!(sender.getCommandSenderEntity() instanceof EntityPlayerMP)) {
+            if (!(sender.getCommandSenderEntity() instanceof EntityPlayerMP)) {
                 throw new CommandException("must be executed by a player");
             }
             EntityPlayerMP playerMP = (EntityPlayerMP) sender.getCommandSenderEntity();
@@ -126,7 +126,7 @@ public class FactionCommand extends CommandBase {
 
     @Override
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, @Nullable BlockPos targetPos) {
-        if(args.length == 1) {
+        if (args.length == 1) {
             return getListOfStringsMatchingLastWord(args, POSSIBLE_SUB_COMMANDS);
         }
 

@@ -15,7 +15,7 @@ public class WarClaims {
     public static final String FILE_VERSION_NAME = "File-Version";
     public static final String FILE_VERSION = "1.0-alpha";
     public static final Logger LOGGER = LogManager.getLogger(Tags.MOD_NAME);
-    @SidedProxy(clientSide =  "net.fawnoculus.warclaims.WarClaimsClientProxy",
+    @SidedProxy(clientSide = "net.fawnoculus.warclaims.WarClaimsClientProxy",
             serverSide = "net.fawnoculus.warclaims.WarClaimsCommonProxy",
             modId = Tags.MOD_ID
     )

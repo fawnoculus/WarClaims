@@ -5,13 +5,13 @@ import net.minecraft.client.gui.GuiScreen;
 import xaero.map.gui.IRightClickableElement;
 import xaero.map.gui.dropdown.rightclick.RightClickOption;
 
-public class ClaimChunkOption extends RightClickOption {
+public class InvadeChunkOption extends RightClickOption {
     private final int startX;
     private final int endX;
     private final int startZ;
     private final int endZ;
 
-    public ClaimChunkOption(int index, IRightClickableElement target, int startX, int endX, int startZ, int endZ) {
+    public InvadeChunkOption(int index, IRightClickableElement target, int startX, int endX, int startZ, int endZ) {
         super(makeName(startX, endX, startZ, endZ), index, target);
 
         this.startX = startX;
@@ -22,9 +22,9 @@ public class ClaimChunkOption extends RightClickOption {
 
     private static String makeName(int startX, int endX, int startZ, int endZ) {
         if (isMultiChunk(startX, endX, startZ, endZ)) {
-            return "Claim Selected";
+            return "Invade Selected";
         }
-        return "Claim Chunk";
+        return "Invade Chunk";
     }
 
     private static boolean isMultiChunk(int startX, int endX, int startZ, int endZ) {
@@ -39,12 +39,12 @@ public class ClaimChunkOption extends RightClickOption {
     public void onAction(GuiScreen guiScreen) {
         if (!this.isMultiChunk()) {
             guiScreen.mc.displayGuiScreen(new GuiChat(
-                    String.format("/claim-single %1$d %2$d LEVEL_HERE", this.startX, this.startZ)
+                    String.format("/invade-single single %1$d %2$d ", this.startX, this.startZ)
             ));
             return;
         }
         guiScreen.mc.displayGuiScreen(new GuiChat(
-                String.format("/claim-selection %1$d %2$d %3$d %4$d LEVEL_HERE", this.startX, this.startZ, this.endX, this.endZ)
+                String.format("/invade-selection %1$d %2$d %3$d %4$d ", this.startX, this.startZ, this.endX, this.endZ)
         ));
     }
 }

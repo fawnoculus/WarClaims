@@ -11,11 +11,11 @@ import java.util.HashMap;
 public class ClaimSyncMessage implements IMessage {
     private final HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> claims;
 
-    public ClaimSyncMessage(){
+    public ClaimSyncMessage() {
         claims = new HashMap<>();
     }
 
-    public ClaimSyncMessage(HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> claims){
+    public ClaimSyncMessage(HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> claims) {
         this.claims = claims;
     }
 
@@ -25,14 +25,14 @@ public class ClaimSyncMessage implements IMessage {
 
     public void setClaim(int dimension, ChunkPos pos, @Nullable ClaimInstance claim) {
         HashMap<ChunkPos, ClaimInstance> dimensionClaims = claims.get(dimension);
-        if(dimensionClaims == null) {
+        if (dimensionClaims == null) {
             dimensionClaims = new HashMap<>();
         }
         dimensionClaims.put(pos, claim);
         claims.put(dimension, dimensionClaims);
     }
 
-    public HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> getMap(){
+    public HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> getMap() {
         return this.claims;
     }
 
@@ -52,7 +52,7 @@ public class ClaimSyncMessage implements IMessage {
                 int chunkZ = buf.readInt();
                 boolean isNull = buf.readBoolean();
 
-                if(isNull) {
+                if (isNull) {
                     this.setClaim(dimensionId, chunkX, chunkZ, null);
                     continue;
                 }
@@ -76,7 +76,7 @@ public class ClaimSyncMessage implements IMessage {
                 buf.writeInt(pos.x);
                 buf.writeInt(pos.z);
 
-                if(claim == null) {
+                if (claim == null) {
                     buf.writeBoolean(true);
                     continue;
                 }

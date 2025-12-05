@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.claims.ClaimManager;
+import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
 import net.fawnoculus.warclaims.networking.messages.FactionSyncMessage;
 import net.fawnoculus.warclaims.utils.JsonUtil;
@@ -47,6 +48,7 @@ public class FactionManager {
         FACTION_BY_NAME.remove(team.name);
         currentTickUpdates.setTeam(factionId, null);
         ClaimManager.removeClaimIf(claim -> factionId.equals(claim.factionId));
+        InvasionManager.removeInvasionIf(invasion -> factionId.equals(invasion.factionId));
     }
 
     public static @Nullable FactionInstance getFaction(UUID factionId) {
@@ -74,7 +76,7 @@ public class FactionManager {
     }
 
     public static void onTick() {
-        if(!currentTickUpdates.isEmpty()) {
+        if (!currentTickUpdates.isEmpty()) {
             WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
             currentTickUpdates = new FactionSyncMessage();
         }
@@ -95,7 +97,7 @@ public class FactionManager {
         // Load Factions
         FACTIONS.clear();
         FACTION_BY_NAME.clear();
-        File file = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.json");
+        File file = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.json");
         if (!file.exists()) {
             return;
         }
@@ -108,7 +110,7 @@ public class FactionManager {
                 WarClaims.LOGGER.info("Trying Making backup of Faction, just in case");
                 try {
                     Files.copy(file.toPath(), file.toPath().resolveSibling("factions.json.bak"), StandardCopyOption.REPLACE_EXISTING);
-                }catch (IOException exception) {
+                } catch (IOException exception) {
                     WarClaims.LOGGER.warn("Failed to make Faction backup", exception);
                     WarClaims.LOGGER.info("(Load Factions) We are just gonna continue and pretend everything is fine, surely nothing bad will happen right?");
                 }
@@ -124,7 +126,7 @@ public class FactionManager {
                 try {
                     factionId = UUID.fromString(entry.getKey());
                     faction = FactionInstance.fromJson(entry.getValue().getAsJsonObject());
-                }catch (Throwable ignored) {
+                } catch (Throwable ignored) {
                     continue;
                 }
 
@@ -137,7 +139,7 @@ public class FactionManager {
 
         // Load Faction Selections
         SELECTED_FACTION.clear();
-        File selectedFactions = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "selected-factions.json");
+        File selectedFactions = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "selected-factions.json");
         if (!selectedFactions.exists()) {
             return;
         }
@@ -150,7 +152,7 @@ public class FactionManager {
                 WarClaims.LOGGER.info("Trying Making backup of Selected-Faction, just in case");
                 try {
                     Files.copy(file.toPath(), file.toPath().resolveSibling("factions.json.bak"), StandardCopyOption.REPLACE_EXISTING);
-                }catch (IOException exception) {
+                } catch (IOException exception) {
                     WarClaims.LOGGER.warn("Failed to make Selected-Faction backup", exception);
                     WarClaims.LOGGER.info("(Load Selected-Factions) We are just gonna continue and pretend everything is fine, surely nothing bad will happen right?");
                 }
@@ -166,7 +168,7 @@ public class FactionManager {
                 try {
                     playerId = UUID.fromString(entry.getKey());
                     factionId = UUID.fromString(entry.getValue().getAsString());
-                }catch (Throwable ignored) {
+                } catch (Throwable ignored) {
                     continue;
                 }
 
@@ -179,12 +181,12 @@ public class FactionManager {
 
     public static void saveToFile(String worldPath) {
         // Save Factions
-        File file = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.json");
+        File file = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.json");
         try {
             if (!file.getParentFile().exists()) {
                 boolean ignored = file.getParentFile().mkdirs();
             }
-            if(file.exists()) {
+            if (file.exists()) {
                 boolean ignored = file.delete();
             }
             boolean ignored = file.createNewFile();
@@ -208,12 +210,12 @@ public class FactionManager {
         }
 
         // Save Faction Selections
-        File selectedFactions = new File(worldPath  + File.separator + "data" + File.separator + "warclaims" + File.separator + "selected-factions.json");
+        File selectedFactions = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "selected-factions.json");
         try {
             if (!selectedFactions.getParentFile().exists()) {
                 boolean ignored = selectedFactions.getParentFile().mkdirs();
             }
-            if(selectedFactions.exists()) {
+            if (selectedFactions.exists()) {
                 boolean ignored = selectedFactions.delete();
             }
             boolean ignored = selectedFactions.createNewFile();

@@ -46,49 +46,6 @@ public class FactionInstance {
         this.allies = allies;
     }
 
-    public boolean isAllied(EntityPlayerMP playerMP) {
-        return this.isAllied(playerMP.getGameProfile().getId());
-    }
-
-    public boolean isMember(EntityPlayerMP playerMP) {
-        return this.isMember(playerMP.getGameProfile().getId());
-    }
-
-    public boolean isOfficer(EntityPlayerMP playerMP) {
-        return this.isOfficer(playerMP.getGameProfile().getId());
-    }
-
-    public boolean isOwner(EntityPlayerMP playerMP) {
-        return this.isOwner(playerMP.getGameProfile().getId());
-    }
-
-    public boolean isAllied(UUID id) {
-        if (this.isMember(id)) {
-            return true;
-        }
-
-        for (UUID allyTeam : this.allies) {
-            FactionInstance instance = FactionManager.getFaction(allyTeam);
-            if(instance != null && instance.isMember(id)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public boolean isMember(UUID id) {
-        return this.members.contains(id) || this.officers.contains(id) || this.owner.equals(id);
-    }
-
-    public boolean isOfficer(UUID id) {
-        return this.officers.contains(id) || this.owner.equals(id);
-    }
-
-    public boolean isOwner(UUID id) {
-        return this.owner.equals(id);
-    }
-
     private static int randomColor(Random random) {
         return ColorUtil.fromHSV(random.nextFloat(), .9f, .9f);
     }
@@ -192,5 +149,48 @@ public class FactionInstance {
         }
 
         return new FactionInstance(owner, color, name, officers, members, allies);
+    }
+
+    public boolean isAllied(EntityPlayerMP playerMP) {
+        return this.isAllied(playerMP.getGameProfile().getId());
+    }
+
+    public boolean isMember(EntityPlayerMP playerMP) {
+        return this.isMember(playerMP.getGameProfile().getId());
+    }
+
+    public boolean isOfficer(EntityPlayerMP playerMP) {
+        return this.isOfficer(playerMP.getGameProfile().getId());
+    }
+
+    public boolean isOwner(EntityPlayerMP playerMP) {
+        return this.isOwner(playerMP.getGameProfile().getId());
+    }
+
+    public boolean isAllied(UUID id) {
+        if (this.isMember(id)) {
+            return true;
+        }
+
+        for (UUID allyTeam : this.allies) {
+            FactionInstance instance = FactionManager.getFaction(allyTeam);
+            if (instance != null && instance.isMember(id)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public boolean isMember(UUID id) {
+        return this.members.contains(id) || this.officers.contains(id) || this.owner.equals(id);
+    }
+
+    public boolean isOfficer(UUID id) {
+        return this.officers.contains(id) || this.owner.equals(id);
+    }
+
+    public boolean isOwner(UUID id) {
+        return this.owner.equals(id);
     }
 }

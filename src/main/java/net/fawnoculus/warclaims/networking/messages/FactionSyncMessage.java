@@ -11,11 +11,11 @@ import java.util.UUID;
 public class FactionSyncMessage implements IMessage {
     private final HashMap<UUID, FactionInstance> teams;
 
-    public FactionSyncMessage(){
+    public FactionSyncMessage() {
         teams = new HashMap<>();
     }
 
-    public FactionSyncMessage(HashMap<UUID, FactionInstance> from){
+    public FactionSyncMessage(HashMap<UUID, FactionInstance> from) {
         teams = from;
     }
 
@@ -23,7 +23,7 @@ public class FactionSyncMessage implements IMessage {
         teams.put(id, team);
     }
 
-    public HashMap<UUID, FactionInstance> getMap(){
+    public HashMap<UUID, FactionInstance> getMap() {
         return this.teams;
     }
 
@@ -38,7 +38,7 @@ public class FactionSyncMessage implements IMessage {
             UUID factionId = new UUID(buf.readLong(), buf.readLong());
 
             boolean isNull = buf.readBoolean();
-            if(isNull) {
+            if (isNull) {
                 this.setTeam(factionId, null);
                 continue;
             }
@@ -55,7 +55,7 @@ public class FactionSyncMessage implements IMessage {
             buf.writeLong(id.getMostSignificantBits());
             buf.writeLong(id.getLeastSignificantBits());
 
-            if(team == null) {
+            if (team == null) {
                 buf.writeBoolean(true);
                 continue;
             }

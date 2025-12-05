@@ -38,7 +38,7 @@ public class ClaimsMapHighlighter extends ChunkHighlighter {
     @Override
     protected int[] getColors(int dimension, int chunkX, int chunkZ) {
         FactionInstance team = ClientClaimManager.getTeam(dimension, chunkX, chunkZ);
-        if (!this.chunkIsHighlit(dimension, chunkX, chunkZ)  || team == null) {
+        if (!this.chunkIsHighlit(dimension, chunkX, chunkZ) || team == null) {
             return null;
         } else {
             int sideColor = ColorUtil.withAlpha(255, team.color);
