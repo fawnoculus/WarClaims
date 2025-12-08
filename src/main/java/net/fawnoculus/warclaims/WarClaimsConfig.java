@@ -7,25 +7,26 @@ import net.minecraftforge.common.config.Configuration;
 import java.io.File;
 
 public class WarClaimsConfig {
-    public static int ClaimDistance = 16;
-    public static int InvadeDistance = 16;
+    public static Configuration configuration;
+    public static int claimDistance = 16;
+    public static int invadeDistance = 16;
 
     public static void synchronizeConfiguration(File configFile) {
-        Configuration configuration = new Configuration(configFile);
+        configuration = new Configuration(configFile);
 
-        ClaimDistance = configuration.getInt(
-                "ClaimDistance",
+        claimDistance = configuration.getInt(
+                "claimDistance",
                 Configuration.CATEGORY_GENERAL,
-                ClaimDistance,
+                claimDistance,
                 0,
                 Integer.MAX_VALUE,
                 "Maximum Claim distance in Chunks"
         );
 
-        InvadeDistance = configuration.getInt(
-                "InvadeDistance",
+        invadeDistance = configuration.getInt(
+                "invadeDistance",
                 Configuration.CATEGORY_GENERAL,
-                InvadeDistance,
+                invadeDistance,
                 0,
                 Integer.MAX_VALUE,
                 "Maximum Invade distance in Chunks"
@@ -40,13 +41,13 @@ public class WarClaimsConfig {
         ChunkPos playerChunk = new ChunkPos(playerPos);
         int xDifference = Math.abs(playerChunk.x - chunkX);
         int zDifference = Math.abs(playerChunk.z - chunkZ);
-        return xDifference < ClaimDistance && zDifference < ClaimDistance;
+        return xDifference < claimDistance && zDifference < claimDistance;
     }
 
     public static boolean isInInvasionRange(BlockPos playerPos, int chunkX, int chunkZ) {
         ChunkPos playerChunk = new ChunkPos(playerPos);
         int xDifference = Math.abs(playerChunk.x - chunkX);
         int zDifference = Math.abs(playerChunk.z - chunkZ);
-        return xDifference < InvadeDistance && zDifference < InvadeDistance;
+        return xDifference < invadeDistance && zDifference < invadeDistance;
     }
 }

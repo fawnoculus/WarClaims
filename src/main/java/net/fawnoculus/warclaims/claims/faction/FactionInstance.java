@@ -8,6 +8,7 @@ import io.netty.buffer.ByteBuf;
 import net.fawnoculus.warclaims.utils.ColorUtil;
 import net.minecraft.entity.player.EntityPlayerMP;
 
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Random;
@@ -219,5 +220,18 @@ public class FactionInstance {
 
     public boolean isOwner(UUID id) {
         return this.owner.equals(id);
+    }
+
+    public int makeColor(@Nullable FactionInstance invadingTeam, boolean isMiddle) {
+        int outColour = this.color;
+        if (invadingTeam != null) {
+            outColour = ColorUtil.lerp(0.5f, this.color, invadingTeam.color);
+        }
+
+        if (isMiddle) {
+            return ColorUtil.withAlpha(255, outColour);
+        }
+
+        return ColorUtil.withAlpha(60, outColour);
     }
 }

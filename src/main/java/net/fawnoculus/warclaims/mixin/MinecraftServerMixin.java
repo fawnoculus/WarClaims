@@ -35,7 +35,7 @@ public class MinecraftServerMixin {
         this.profiler.endSection();
 
         this.profiler.startSection("[WarClaims] InvasionManager");
-        InvasionManager.onTick();
+        InvasionManager.onTick((MinecraftServer) (Object) this);
         this.profiler.endSection();
 
         this.profiler.startSection("[WarClaims] TeamManager");

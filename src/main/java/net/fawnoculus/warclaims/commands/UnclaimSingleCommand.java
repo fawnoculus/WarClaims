@@ -2,11 +2,8 @@ package net.fawnoculus.warclaims.commands;
 
 import com.google.common.collect.ImmutableList;
 import net.fawnoculus.warclaims.WarClaimsConfig;
-import net.fawnoculus.warclaims.claims.ClaimInstance;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
-import net.fawnoculus.warclaims.claims.faction.FactionManager;
-import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -18,22 +15,21 @@ import net.minecraft.util.math.BlockPos;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
-public class InvadeSingleCommand extends CommandBase {
+public class UnclaimSingleCommand extends CommandBase {
     @Override
     public String getName() {
-        return "invade-single";
+        return "unclaim-single";
     }
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "invade-single <chunkX> <chunkZ>";
+        return "unclaim-single <chunkX> <chunkZ>";
     }
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        if (args.length < 2) {
+        if (args.length < 3 || args[2].isEmpty()) {
             throw new CommandException("Not Enough Arguments: " + this.getUsage(sender));
         }
 
@@ -47,49 +43,33 @@ public class InvadeSingleCommand extends CommandBase {
         try {
             chunkX = Integer.parseInt(args[0]);
         }catch (NumberFormatException ignored) {
-            throw new NumberInvalidException("%1$s is not a valid integer", args[0]);
+            throw new NumberInvalidException("%1$s is not a valid integer (chunkX)", args[0]);
         }
 
         int chunkZ;
         try {
             chunkZ = Integer.parseInt(args[1]);
         }catch (NumberFormatException ignored) {
-            throw new NumberInvalidException("%1$s is not a valid integer", args[0]);
+            throw new NumberInvalidException("%1$s is not a valid integer (chunkZ)", args[1]);
         }
 
-        if (!WarClaimsConfig.isInInvasionRange(playerMP.getPosition(), chunkX, chunkZ)) {
-            throw new CommandException(String.format("Chunk is to far away, Max Invade Distance is: %1$d chunks", WarClaimsConfig.invadeDistance));
+        if (!WarClaimsConfig.isInClaimRange(playerMP.getPosition(), chunkX, chunkZ)) {
+            throw new CommandException(String.format("Chunk is to far away, Max Claim Distance is: %1$d chunks", WarClaimsConfig.claimDistance));
         }
 
-        ClaimInstance claim = ClaimManager.getClaim(dimension, chunkX, chunkZ);
         FactionInstance claimingFaction = ClaimManager.getFaction(dimension, chunkX, chunkZ);
-        if (claim == null || claimingFaction == null) {
-            throw new CommandException("Chunk is not claimed by anyone");
+        if (claimingFaction == null) {
+            throw new CommandException("Cannot unclaim Chunk at %1$s because it is not claimed", chunkX + "," + chunkZ);
         }
 
-        UUID selectedFaction = FactionManager.getSelectedFaction(playerMP);
-        if (selectedFaction == null) {
-            throw new CommandException("You must select or create a faction with /faction");
-        }
-
-        FactionInstance faction = FactionManager.getFaction(selectedFaction);
-        if (faction == null) {
-            throw new CommandException("The Team you have selected does not exist");
-        }
-
-        if (!faction.isOfficer(playerMP)) {
+        if (!claimingFaction.isOfficer(playerMP)) {
             throw new CommandException(
-                    "You do not have permission to invade chunks for \"%1$s\" you must be an officer or the owner",
-                    faction.name
+                    "You do not have permission to unclaim chunks for \"%1$s\" you must be an officer or the owner",
+                    claimingFaction.name
             );
         }
 
-
-        if (!InvasionManager.takeRequiredItems(playerMP)) {
-            throw new CommandException("You don't have the resources required to start invading this chunk");
-        }
-
-        InvasionManager.addInvasion(dimension, chunkX, chunkZ, claim, selectedFaction);
+        ClaimManager.unclaim(dimension, chunkX, chunkZ);
     }
 
     @Override

@@ -56,7 +56,7 @@ public class ClaimSingleCommand extends CommandBase {
         }
 
         if (!WarClaimsConfig.isInClaimRange(playerMP.getPosition(), chunkX, chunkZ)) {
-            throw new CommandException(String.format("Chunk is to far away, Max Claim Distance is: %1$d chunks", WarClaimsConfig.ClaimDistance));
+            throw new CommandException(String.format("Chunk is to far away, Max Claim Distance is: %1$d chunks", WarClaimsConfig.claimDistance));
         }
 
         FactionInstance claimingFaction = ClaimManager.getFaction(dimension, chunkX, chunkZ);
@@ -87,7 +87,7 @@ public class ClaimSingleCommand extends CommandBase {
 
         if (!faction.isOfficer(playerMP)) {
             throw new CommandException(
-                    "You do not have permission to invade chunks for \"%1$s\" you must be an officer or the owner",
+                    "You do not have permission to claim chunks for \"%1$s\" you must be an officer or the owner",
                     faction.name
             );
         }

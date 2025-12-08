@@ -2,6 +2,9 @@ package net.fawnoculus.warclaims.claims;
 
 import com.google.gson.JsonObject;
 import io.netty.buffer.ByteBuf;
+import net.fawnoculus.warclaims.claims.faction.FactionInstance;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
 
 import java.util.UUID;
 
@@ -14,10 +17,10 @@ public class ClaimInstance {
         this.level = level;
     }
 
-    public static JsonObject toJson(ClaimInstance claim) {
+    public JsonObject toJson() {
         JsonObject json = new JsonObject();
-        json.addProperty("factionId", claim.factionId.toString());
-        json.addProperty("level", claim.level);
+        json.addProperty("factionId", this.factionId.toString());
+        json.addProperty("level", this.level);
         return json;
     }
 
@@ -38,6 +41,11 @@ public class ClaimInstance {
         int level = buf.readInt();
         return new ClaimInstance(factionId, level);
     }
+
+    public ITextComponent makeTooltip(FactionInstance team) {
+        return new TextComponentString(team.name + "(" + this.level + ")");
+    }
+
 
     @Override
     public String toString() {

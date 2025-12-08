@@ -1,89 +1,66 @@
 package net.fawnoculus.warclaims.networking.messages;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import net.fawnoculus.warclaims.claims.ClaimKey;
 import net.fawnoculus.warclaims.claims.invade.InvasionInstance;
-import net.minecraft.util.math.ChunkPos;
+import net.fawnoculus.warclaims.claims.invade.InvasionKey;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.Map;
 
 public class InvasionSyncMessage implements IMessage {
-    private final HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> claims;
+    private final Map<InvasionKey, InvasionInstance> invasions;
+    private final Map<ClaimKey, InvasionKey> invasionsByPos;
+    private @Nullable ByteBuf asBytes = null;
 
     public InvasionSyncMessage() {
-        claims = new HashMap<>();
+        this.invasions = new HashMap<>();
+        this.invasionsByPos = new HashMap<>();
     }
 
-    public InvasionSyncMessage(HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> claims) {
-        this.claims = claims;
+    public InvasionSyncMessage(Map<InvasionKey, InvasionInstance> invasions, Map<ClaimKey, InvasionKey> invasionsByPos) {
+        this.invasions = invasions;
+        this.invasionsByPos = invasionsByPos;
     }
 
-    public void setInvasion(int dimension, int chunkX, int chunkZ, @Nullable InvasionInstance claim) {
-        this.setInvasion(dimension, new ChunkPos(chunkX, chunkZ), claim);
+    public void setInvasion(InvasionKey key, @Nullable InvasionInstance instance) {
+        this.invasions.put(key, instance);
     }
 
-    public void setInvasion(int dimension, ChunkPos pos, @Nullable InvasionInstance claim) {
-        HashMap<ChunkPos, InvasionInstance> dimensionClaims = claims.get(dimension);
-        if (dimensionClaims == null) {
-            dimensionClaims = new HashMap<>();
-        }
-        dimensionClaims.put(pos, claim);
-        claims.put(dimension, dimensionClaims);
+    public void removeInvasion(InvasionKey key) {
+        this.invasions.remove(key);
     }
 
-    public HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> getMap() {
-        return this.claims;
+    public void setInvasionPos(ClaimKey claimKey, @Nullable InvasionKey invasionKey) {
+        this.invasionsByPos.put(claimKey, invasionKey);
+    }
+
+    public void removeInvasionPos(ClaimKey claimKey) {
+        this.invasionsByPos.remove(claimKey);
     }
 
     public boolean isEmpty() {
-        return this.claims.isEmpty();
+        return this.invasions.isEmpty() && this.invasionsByPos.isEmpty();
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        int updatedDimensions = buf.readInt();
-        for (int i = 0; i < updatedDimensions; i++) {
-            int dimensionId = buf.readInt();
-            int updatedClaims = buf.readInt();
-
-            for (int j = 0; j < updatedClaims; j++) {
-                int chunkX = buf.readInt();
-                int chunkZ = buf.readInt();
-                boolean isNull = buf.readBoolean();
-
-                if (isNull) {
-                    this.setInvasion(dimensionId, chunkX, chunkZ, null);
-                    continue;
-                }
-
-                this.setInvasion(dimensionId, chunkX, chunkZ, InvasionInstance.fromBytes(buf));
-            }
-        }
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
-        buf.writeInt(claims.size());
-        for (Integer dimensionId : claims.keySet()) {
-            HashMap<ChunkPos, InvasionInstance> dimensionClaims = claims.get(dimensionId);
-
-            buf.writeInt(dimensionId);
-            buf.writeInt(dimensionClaims.size());
-
-            for (ChunkPos pos : dimensionClaims.keySet()) {
-                InvasionInstance claim = dimensionClaims.get(pos);
-                buf.writeInt(pos.x);
-                buf.writeInt(pos.z);
-
-                if (claim == null) {
-                    buf.writeBoolean(true);
-                    continue;
-                }
-
-                buf.writeBoolean(false);
-                InvasionInstance.toByteBuff(buf, claim);
-            }
+        if (this.asBytes != null) {
+            buf.writeBytes(this.asBytes);
+            return;
         }
+        ByteBuf buffer = Unpooled.buffer();
+
+        // TODO
+
+        this.asBytes = buffer;
+        buf.writeBytes(buffer);
     }
 }

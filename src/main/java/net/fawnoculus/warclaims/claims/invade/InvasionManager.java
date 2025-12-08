@@ -3,92 +3,105 @@ package net.fawnoculus.warclaims.claims.invade;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import com.mojang.realmsclient.util.Pair;
 import net.fawnoculus.warclaims.WarClaims;
-import net.fawnoculus.warclaims.claims.faction.FactionInstance;
-import net.fawnoculus.warclaims.claims.faction.FactionManager;
+import net.fawnoculus.warclaims.claims.ClaimInstance;
+import net.fawnoculus.warclaims.claims.ClaimKey;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
 import net.fawnoculus.warclaims.networking.messages.InvasionSyncMessage;
 import net.fawnoculus.warclaims.utils.JsonUtil;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.server.MinecraftServer;
 
 import javax.annotation.Nullable;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Predicate;
 
 public class InvasionManager {
-    private static final HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> INVASIONS = new HashMap<>();
-    public static InvasionSyncMessage currentTickUpdates = new InvasionSyncMessage();
+    private static final Map<InvasionKey, InvasionInstance> INVASIONS = new HashMap<>();
+    private static final Map<ClaimKey, InvasionKey> INVASIONS_BY_POS = new HashMap<>();
+    private static InvasionSyncMessage initialSync = new InvasionSyncMessage();
+    private static InvasionSyncMessage currentTickUpdates = new InvasionSyncMessage();
 
-    public static @Nullable InvasionInstance getClaim(int dimension, int chunkX, int chunkZ) {
-        HashMap<ChunkPos, InvasionInstance> dimensionInvasions = INVASIONS.get(dimension);
-        if (dimensionInvasions == null) {
-            return null;
-        }
-        return dimensionInvasions.get(new ChunkPos(chunkX, chunkZ));
+    public static @Nullable InvasionKey fromPos(int dimension, int chunkX, int chunkZ) {
+        return INVASIONS_BY_POS.get(new ClaimKey(dimension, chunkX, chunkZ));
     }
 
-    public static @Nullable FactionInstance getFaction(int dimension, int chunkX, int chunkZ) {
-        InvasionInstance invasion = getClaim(dimension, chunkX, chunkZ);
+    public static @Nullable InvasionInstance getInvasion(InvasionKey key) {
+        return INVASIONS.get(key);
+    }
+
+    public static void addInvasion(int dimension, int chunkX, int chunkZ, ClaimInstance claim, UUID attackingFaction) {
+        addInvasion(new ClaimKey(dimension, chunkX, chunkZ), claim, attackingFaction);
+    }
+
+    public static void addInvasion(ClaimKey claimKey, ClaimInstance claim, UUID attackingFaction) {
+        InvasionKey key = new InvasionKey(attackingFaction, claim.factionId);
+        setInvasionPos(claimKey, key);
+
+        InvasionInstance invasion = getInvasion(key);
         if (invasion == null) {
-            return null;
+            invasion = new InvasionInstance();
+            setInvasion(key, invasion);
         }
 
-        return FactionManager.getFaction(invasion.factionId);
+        invasion.addChunk(claimKey, claim.level);
     }
 
-    public static void invade(int dimension, int chunkX, int chunkZ, UUID factionId) {
-        setInvasion(dimension, chunkX, chunkZ, new InvasionInstance(factionId));
+    public static void setInvasion(InvasionKey key, InvasionInstance invasion) {
+        INVASIONS.put(key, invasion);
+        initialSync.setInvasion(key, invasion);
+        currentTickUpdates.setInvasion(key, invasion);
     }
 
-    public static void setInvasion(int dimension, int chunkX, int chunkZ, InvasionInstance invasion) {
-        setInvasion(dimension, new ChunkPos(chunkX, chunkZ), invasion);
+    public static void removeInvasion(InvasionKey key) {
+        INVASIONS.remove(key);
+        initialSync.removeInvasion(key);
+        currentTickUpdates.setInvasion(key, null);
+
+        removeInvasionPosIf(entry -> key.equals(entry.getValue()));
     }
 
-    public static void setInvasion(int dimension, ChunkPos pos, InvasionInstance invasion) {
-        HashMap<ChunkPos, InvasionInstance> dimensionInvasions = INVASIONS
-                .computeIfAbsent(dimension, ignored -> new HashMap<>());
-        dimensionInvasions.put(pos, invasion);
-        currentTickUpdates.setInvasion(dimension, pos, invasion);
+    public static void setInvasionPos(ClaimKey claimKey, InvasionKey invasionKey) {
+        INVASIONS_BY_POS.put(claimKey, invasionKey);
+        initialSync.setInvasionPos(claimKey, invasionKey);
+        currentTickUpdates.setInvasionPos(claimKey, invasionKey);
     }
 
-    public static void unInvade(int dimension, int chunkX, int chunkZ) {
-        unInvade(dimension, new ChunkPos(chunkX, chunkZ));
+    public static void removeInvasionPos(ClaimKey key) {
+        INVASIONS_BY_POS.remove(key);
+        initialSync.removeInvasionPos(key);
+        currentTickUpdates.setInvasionPos(key, null);
     }
 
-    public static void unInvade(int dimension, ChunkPos pos) {
-        HashMap<ChunkPos, InvasionInstance> dimensionInvasions = INVASIONS
-                .computeIfAbsent(dimension, ignored -> new HashMap<>());
+    public static void removeInvasionIf(Predicate<Map.Entry<InvasionKey, InvasionInstance>> predicate) {
+        ArrayList<InvasionKey> toRemove = new ArrayList<>();
 
-        dimensionInvasions.remove(pos);
-        currentTickUpdates.setInvasion(dimension, pos, null);
-    }
-
-    public static void removeInvasionIf(Predicate<InvasionInstance> predicate) {
-        ArrayList<Pair<Integer, ChunkPos>> toRemove = new ArrayList<>();
-
-        for (Integer dimension : INVASIONS.keySet()) {
-            HashMap<ChunkPos, InvasionInstance> DimensionClaims = INVASIONS.get(dimension);
-
-            for (ChunkPos pos : DimensionClaims.keySet()) {
-                InvasionInstance invasion = DimensionClaims.get(pos);
-
-                if (predicate.test(invasion)) {
-                    toRemove.add(Pair.of(dimension, pos));
-                }
+        for (Map.Entry<InvasionKey, InvasionInstance> entry : INVASIONS.entrySet()) {
+            if (predicate.test(entry)) {
+                toRemove.add(entry.getKey());
             }
         }
 
-        for (Pair<Integer, ChunkPos> pair : toRemove) {
-            unInvade(pair.first(), pair.second());
+        for (InvasionKey key : toRemove) {
+            removeInvasion(key);
+        }
+    }
+
+    public static void removeInvasionPosIf(Predicate<Map.Entry<ClaimKey, InvasionKey>> predicate) {
+        ArrayList<ClaimKey> toRemove = new ArrayList<>();
+
+        for (Map.Entry<ClaimKey, InvasionKey> entry : INVASIONS_BY_POS.entrySet()) {
+            if (predicate.test(entry)) {
+                toRemove.add(entry.getKey());
+            }
+        }
+
+        for (ClaimKey key : toRemove) {
+            removeInvasionPos(key);
         }
     }
 
@@ -101,50 +114,26 @@ public class InvasionManager {
         return true;
     }
 
-    public static long getInvasionTime(int level, boolean isOffline) {
-        if (isOffline) {
-            switch (level) {
-                case 0:
-                case 1:
-                case 2: return 5 * 60 * 20;
-                case 3: return 10 * 60 * 20;
-                case 4: return 30 * 60 * 20;
-                case 5: return 60 * 60 * 20;
+    public static void onTick(MinecraftServer server) {
+        List<InvasionKey> toRemove = new ArrayList<>();
+
+        for (Map.Entry<InvasionKey, InvasionInstance> entry : INVASIONS.entrySet()) {
+            boolean shouldRemove = entry.getValue().onTick(server, entry.getKey());
+
+            if (shouldRemove) {
+                toRemove.add(entry.getKey());
+                continue;
+            }
+
+            if (entry.getValue().requiresClientSync) {
+                initialSync.setInvasion(entry.getKey(), entry.getValue());
+                currentTickUpdates.setInvasion(entry.getKey(), entry.getValue());
             }
         }
 
-        switch (level) {
-            case 0: return 60 * 20;
-            case 1: return 2 * 60 * 20;
-            case 2: return 4 * 60 * 20;
-            case 3: return 6 * 60 * 20;
-            case 4: return 10 * 60 * 20;
-            case 5: return 15 * 60 * 20;
+        for (InvasionKey invasionKey : toRemove) {
+            removeInvasion(invasionKey);
         }
-
-        return 0;
-    }
-
-    public static void onTick() {
-        ArrayList<Pair<Integer, ChunkPos>> toRemove = new ArrayList<>();
-
-        for (Map.Entry<Integer, HashMap<ChunkPos, InvasionInstance>> entry : INVASIONS.entrySet()) {
-            for (Map.Entry<ChunkPos, InvasionInstance> dimensionEntry : entry.getValue().entrySet()) {
-                InvasionInstance updatedInvasion = dimensionEntry.getValue().onTick(entry.getKey(), dimensionEntry.getKey());
-
-                if (updatedInvasion == null) {
-                    toRemove.add(Pair.of(entry.getKey(), dimensionEntry.getKey()));
-                    continue;
-                }
-
-                if (dimensionEntry.getValue().isDifferent(updatedInvasion)) {
-                    dimensionEntry.setValue(updatedInvasion);
-                    currentTickUpdates.setInvasion(entry.getKey(), dimensionEntry.getKey(), updatedInvasion);
-                }
-            }
-        }
-
-        toRemove.forEach(pair -> unInvade(pair.first(), pair.second()));
 
         if (!currentTickUpdates.isEmpty()) {
             WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
@@ -158,7 +147,7 @@ public class InvasionManager {
     }
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
-        WarClaimsNetworking.WRAPPER.sendTo(new InvasionSyncMessage(INVASIONS), playerMP);
+        WarClaimsNetworking.WRAPPER.sendTo(initialSync, playerMP);
     }
 
     public static void loadFromFile(String worldPath) {
@@ -182,39 +171,27 @@ public class InvasionManager {
                 }
             }
 
-            for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
-                if (!entry.getValue().isJsonObject()) {
-                    continue;
-                }
-
-                int dimension;
-                try {
-                    dimension = Integer.parseInt(entry.getKey());
-                } catch (NumberFormatException ignored) {
-                    continue;
-                }
-
-                JsonObject dimensionJson = entry.getValue().getAsJsonObject();
-
-
-                for (Map.Entry<String, JsonElement> dimensionEntry : dimensionJson.entrySet()) {
-                    if (!dimensionEntry.getValue().isJsonObject()) {
-                        continue;
-                    }
-
-                    ChunkPos pos;
-                    InvasionInstance invasion;
+            try {
+                for (Map.Entry<String, JsonElement> entry : json.get("invasions").getAsJsonObject().entrySet()) {
                     try {
-                        pos = JsonUtil.toChunkPos(dimensionEntry.getKey());
-                        invasion = InvasionInstance.fromJson(dimensionEntry.getValue().getAsJsonObject());
+                        setInvasion(InvasionKey.fromString(entry.getKey()), InvasionInstance.fromJson(entry.getValue().getAsJsonObject()));
                     } catch (Throwable ignored) {
-                        continue;
                     }
-
-                    setInvasion(dimension, pos, invasion);
                 }
+            } catch (Throwable ignored) {
             }
 
+            try {
+                for (Map.Entry<String, JsonElement> entry : json.get("chunks").getAsJsonObject().entrySet()) {
+                    try {
+                        setInvasionPos(ClaimKey.fromString(entry.getKey()), InvasionKey.fromString(entry.getValue().getAsString()));
+                    } catch (Throwable ignored) {
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+
+            initialSync = new InvasionSyncMessage(INVASIONS, INVASIONS_BY_POS);
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to load Invasions: {}", e.getMessage());
         }
@@ -239,17 +216,17 @@ public class InvasionManager {
             JsonObject json = new JsonObject();
             json.add(WarClaims.FILE_VERSION_NAME, new JsonPrimitive(WarClaims.FILE_VERSION));
 
-            for (Integer dimension : INVASIONS.keySet()) {
-                HashMap<ChunkPos, InvasionInstance> DimensionClaims = INVASIONS.get(dimension);
-                JsonObject dimensionJson = new JsonObject();
-
-                for (ChunkPos pos : DimensionClaims.keySet()) {
-                    InvasionInstance invasion = DimensionClaims.get(pos);
-                    dimensionJson.add(JsonUtil.fromChunkPos(pos), InvasionInstance.toJson(invasion));
-                }
-
-                json.add(dimension.toString(), dimensionJson);
+            JsonObject invasions = new JsonObject();
+            for (Map.Entry<InvasionKey, InvasionInstance> entry : INVASIONS.entrySet()) {
+                invasions.add(entry.getKey().toString(), entry.getValue().toJson());
             }
+            json.add("invasions", invasions);
+
+            JsonObject chunks = new JsonObject();
+            for (Map.Entry<ClaimKey, InvasionKey> entry : INVASIONS_BY_POS.entrySet()) {
+                chunks.addProperty(entry.getKey().toString(), entry.getValue().toString());
+            }
+            json.add("chunks", chunks);
 
             JsonUtil.toWriter(writer, json);
         } catch (Throwable e) {

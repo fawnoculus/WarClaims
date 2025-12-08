@@ -25,6 +25,8 @@ public class WarClaimsCommonProxy {
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new ClaimSingleCommand());
         event.registerServerCommand(new ClaimSelectionCommand());
+        event.registerServerCommand(new UnclaimSingleCommand());
+        event.registerServerCommand(new UnclaimSelectionCommand());
         event.registerServerCommand(new InvadeSingleCommand());
         event.registerServerCommand(new InvadeSelectionCommand());
         event.registerServerCommand(new ForceClaimCommand());

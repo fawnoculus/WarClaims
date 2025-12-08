@@ -20,36 +20,22 @@ import xaero.minimap.XaeroMinimapStandaloneSession;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.function.Predicate;
 
 @SideOnly(Side.CLIENT)
 public class ClientClaimManager {
-    private static final HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> CLAIMS = new HashMap<>();
+    private static final HashMap<ClaimKey, ClaimInstance> CLAIMS = new HashMap<>();
 
     public static @Nullable ClaimInstance get(int dimension, int chunkX, int chunkZ) {
-        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
-        if (dimensionClaims == null) {
-            return null;
-        }
-        return dimensionClaims.get(new ChunkPos(chunkX, chunkZ));
+        return CLAIMS.get(new ClaimKey(dimension, chunkX, chunkZ));
     }
 
     private static void setClaim(int dimension, ChunkPos pos, ClaimInstance claim) {
-        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
-        if (dimensionClaims == null) {
-            dimensionClaims = new HashMap<>();
-        }
-
-        if (claim == null) {
-            dimensionClaims.remove(pos);
-        } else {
-            dimensionClaims.put(pos, claim);
-        }
-
-        CLAIMS.put(dimension, dimensionClaims);
+        CLAIMS.put(new ClaimKey(dimension, pos), claim);
     }
 
-    public static @Nullable FactionInstance getTeam(int dimension, int chunkX, int chunkZ) {
+    public static @Nullable FactionInstance getFaction(int dimension, int chunkX, int chunkZ) {
         ClaimInstance claim = get(dimension, chunkX, chunkZ);
         if (claim != null) {
             return ClientFactionManager.get(claim.factionId);
@@ -71,15 +57,17 @@ public class ClientClaimManager {
 
         HashSet<ChunkPos> regionsToUpdate = new HashSet<>();
 
-        for (Integer dimensionId : message.getMap().keySet()) {
-            HashMap<ChunkPos, ClaimInstance> dimensionClaims = message.getMap().get(dimensionId);
+        for (ClaimKey key : message.getMap().keySet()) {
+            ClaimInstance claim = message.getMap().get(key);
 
-            for (ChunkPos pos : dimensionClaims.keySet()) {
-                setClaim(dimensionId, pos, dimensionClaims.get(pos));
+            if(claim == null) {
+                CLAIMS.remove(key);
+            }else {
+                CLAIMS.put(key, claim);
+            }
 
-                if (dimensionId == currentDimension) {
-                    regionsToUpdate.add(chunkToRegion(pos));
-                }
+            if (currentDimension == key.dimension) {
+                regionsToUpdate.add(chunkToRegion(key.pos));
             }
         }
 
@@ -98,18 +86,13 @@ public class ClientClaimManager {
 
         HashSet<ChunkPos> regionsToUpdate = new HashSet<>();
 
-        for (Integer dimension : CLAIMS.keySet()) {
-            if (dimension != currentDimension) {
+        for (Map.Entry<ClaimKey, ClaimInstance> entry : CLAIMS.entrySet()) {
+            if (entry.getKey().dimension != currentDimension) {
                 continue;
             }
-            HashMap<ChunkPos, ClaimInstance> DimensionClaims = CLAIMS.get(dimension);
 
-            for (ChunkPos pos : DimensionClaims.keySet()) {
-                ClaimInstance claim = DimensionClaims.get(pos);
-
-                if (predicate.test(claim)) {
-                    regionsToUpdate.add(chunkToRegion(pos));
-                }
+            if (predicate.test(entry.getValue())) {
+                regionsToUpdate.add(chunkToRegion(entry.getKey().pos));
             }
         }
 

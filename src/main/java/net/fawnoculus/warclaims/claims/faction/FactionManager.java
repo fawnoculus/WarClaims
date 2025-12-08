@@ -24,6 +24,7 @@ public class FactionManager {
     private static final HashMap<UUID, FactionInstance> FACTIONS = new HashMap<>();
     private static final HashMap<String, UUID> FACTION_BY_NAME = new HashMap<>();
     private static final HashMap<UUID, UUID> SELECTED_FACTION = new HashMap<>();
+    private static FactionSyncMessage initialSync = new FactionSyncMessage();
     private static FactionSyncMessage currentTickUpdates = new FactionSyncMessage();
 
     public static UUID makeFaction(EntityPlayerMP owner, String name) {
@@ -32,10 +33,11 @@ public class FactionManager {
         return uuid;
     }
 
-    public static void setFaction(UUID factionId, FactionInstance team) {
-        FACTIONS.put(factionId, team);
-        FACTION_BY_NAME.put(team.name, factionId);
-        currentTickUpdates.setTeam(factionId, team);
+    public static void setFaction(UUID factionId, FactionInstance faction) {
+        FACTIONS.put(factionId, faction);
+        FACTION_BY_NAME.put(faction.name, factionId);
+        currentTickUpdates.setFaction(factionId, faction);
+        initialSync.setFaction(factionId, faction);
     }
 
     public static void removeFaction(UUID factionId) {
@@ -46,9 +48,12 @@ public class FactionManager {
 
         FACTIONS.remove(factionId);
         FACTION_BY_NAME.remove(team.name);
-        currentTickUpdates.setTeam(factionId, null);
+        initialSync.removeFaction(factionId);
+        currentTickUpdates.setFaction(factionId, null);
         ClaimManager.removeClaimIf(claim -> factionId.equals(claim.factionId));
-        InvasionManager.removeInvasionIf(invasion -> factionId.equals(invasion.factionId));
+        InvasionManager.removeInvasionIf(
+                entry -> factionId.equals(entry.getKey().attackingFaction) || factionId.equals(entry.getKey().defendingFaction)
+        );
     }
 
     public static @Nullable FactionInstance getFaction(UUID factionId) {
@@ -86,11 +91,12 @@ public class FactionManager {
         FACTIONS.clear();
         FACTION_BY_NAME.clear();
         SELECTED_FACTION.clear();
+        initialSync = new FactionSyncMessage();
         currentTickUpdates = new FactionSyncMessage();
     }
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
-        WarClaimsNetworking.WRAPPER.sendTo(new FactionSyncMessage(FACTIONS), playerMP);
+        WarClaimsNetworking.WRAPPER.sendTo(initialSync, playerMP);
     }
 
     public static void loadFromFile(String worldPath) {
@@ -132,6 +138,8 @@ public class FactionManager {
 
                 setFaction(factionId, faction);
             }
+
+            initialSync = new FactionSyncMessage(FACTIONS);
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to load Factions: {}", e.getMessage());
             return;

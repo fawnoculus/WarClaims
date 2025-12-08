@@ -1,6 +1,7 @@
 package net.fawnoculus.warclaims.networking.messages;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 
@@ -9,26 +10,33 @@ import java.util.HashMap;
 import java.util.UUID;
 
 public class FactionSyncMessage implements IMessage {
-    private final HashMap<UUID, FactionInstance> teams;
+    private final HashMap<UUID, FactionInstance> faction;
+    private @Nullable ByteBuf asBytes = null;
 
     public FactionSyncMessage() {
-        teams = new HashMap<>();
+        faction = new HashMap<>();
     }
 
     public FactionSyncMessage(HashMap<UUID, FactionInstance> from) {
-        teams = from;
+        faction = from;
     }
 
-    public void setTeam(UUID id, @Nullable FactionInstance team) {
-        teams.put(id, team);
+    public void setFaction(UUID id, @Nullable FactionInstance team) {
+        faction.put(id, team);
+        this.asBytes = null;
+    }
+
+    public void removeFaction(UUID id) {
+        faction.remove(id);
+        this.asBytes = null;
     }
 
     public HashMap<UUID, FactionInstance> getMap() {
-        return this.teams;
+        return this.faction;
     }
 
     public boolean isEmpty() {
-        return this.teams.isEmpty();
+        return this.faction.isEmpty();
     }
 
     @Override
@@ -39,29 +47,38 @@ public class FactionSyncMessage implements IMessage {
 
             boolean isNull = buf.readBoolean();
             if (isNull) {
-                this.setTeam(factionId, null);
+                this.setFaction(factionId, null);
                 continue;
             }
 
-            this.setTeam(factionId, FactionInstance.fromBytes(buf));
+            this.setFaction(factionId, FactionInstance.fromBytes(buf));
         }
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
-        buf.writeInt(teams.size());
-        for (UUID id : teams.keySet()) {
-            FactionInstance team = teams.get(id);
-            buf.writeLong(id.getMostSignificantBits());
-            buf.writeLong(id.getLeastSignificantBits());
+        if (this.asBytes != null) {
+            buf.writeBytes(this.asBytes);
+            return;
+        }
+        ByteBuf buffer = Unpooled.buffer();
+
+        buffer.writeInt(faction.size());
+        for (UUID id : faction.keySet()) {
+            FactionInstance team = faction.get(id);
+            buffer.writeLong(id.getMostSignificantBits());
+            buffer.writeLong(id.getLeastSignificantBits());
 
             if (team == null) {
-                buf.writeBoolean(true);
+                buffer.writeBoolean(true);
                 continue;
             }
 
-            buf.writeBoolean(false);
-            FactionInstance.toByteBuff(buf, team);
+            buffer.writeBoolean(false);
+            FactionInstance.toByteBuff(buffer, team);
         }
+
+        this.asBytes = buffer;
+        buf.writeBytes(buffer);
     }
 }

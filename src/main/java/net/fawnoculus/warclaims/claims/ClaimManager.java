@@ -15,28 +15,24 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.ChunkPos;
 
 import javax.annotation.Nullable;
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Predicate;
 
 public class ClaimManager {
-    private static final HashMap<Integer, HashMap<ChunkPos, ClaimInstance>> CLAIMS = new HashMap<>();
-    public static ClaimSyncMessage currentTickUpdates = new ClaimSyncMessage();
+    private static final HashMap<ClaimKey, ClaimInstance> CLAIMS = new HashMap<>();
+    private static ClaimSyncMessage initialSync = new ClaimSyncMessage();
+    private static ClaimSyncMessage currentTickUpdates = new ClaimSyncMessage();
 
     public static @Nullable ClaimInstance getClaim(int dimension, int chunkX, int chunkZ) {
-        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS.get(dimension);
-        if (dimensionClaims == null) {
-            return null;
-        }
-        return dimensionClaims.get(new ChunkPos(chunkX, chunkZ));
+        return CLAIMS.get(new ClaimKey(dimension, chunkX, chunkZ));
     }
 
     public static @Nullable FactionInstance getFaction(int dimension, int chunkX, int chunkZ) {
@@ -49,53 +45,36 @@ public class ClaimManager {
     }
 
     public static void claim(int dimension, int chunkX, int chunkZ, UUID factionId, int level) {
-        setClaim(dimension, chunkX, chunkZ, new ClaimInstance(factionId, level));
+        setClaim(new ClaimKey(dimension, chunkX, chunkZ), new ClaimInstance(factionId, level));
     }
 
-    public static void setClaim(int dimension, int chunkX, int chunkZ, ClaimInstance claim) {
-        setClaim(dimension, new ChunkPos(chunkX, chunkZ), claim);
-    }
-
-    public static void setClaim(int dimension, ChunkPos pos, ClaimInstance claim) {
-        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS
-                .computeIfAbsent(dimension, ignored -> new HashMap<>());
-        dimensionClaims.put(pos, claim);
-        currentTickUpdates.setClaim(dimension, pos, claim);
+    public static void setClaim(ClaimKey key, ClaimInstance claim) {
+        CLAIMS.put(key, claim);
+        initialSync.setClaim(key, claim);
+        currentTickUpdates.setClaim(key, claim);
     }
 
     public static void unclaim(int dimension, int chunkX, int chunkZ) {
-        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS
-                .computeIfAbsent(dimension, ignored -> new HashMap<>());
-
-        dimensionClaims.remove(new ChunkPos(chunkX, chunkZ));
-        currentTickUpdates.setClaim(dimension, chunkX, chunkZ, null);
+        removeClaim(new ClaimKey(dimension, chunkX, chunkZ));
     }
 
-    public static void unclaim(int dimension, ChunkPos pos) {
-        HashMap<ChunkPos, ClaimInstance> dimensionClaims = CLAIMS
-                .computeIfAbsent(dimension, ignored -> new HashMap<>());
-
-        dimensionClaims.remove(pos);
-        currentTickUpdates.setClaim(dimension, pos, null);
+    public static void removeClaim(ClaimKey key) {
+        CLAIMS.remove(key);
+        initialSync.removeClaim(key);
+        currentTickUpdates.setClaim(key, null);
     }
 
     public static void removeClaimIf(Predicate<ClaimInstance> predicate) {
-        ArrayList<Pair<Integer, ChunkPos>> toRemove = new ArrayList<>();
+        List<ClaimKey> toRemove = new ArrayList<>();
 
-        for (Integer dimension : CLAIMS.keySet()) {
-            HashMap<ChunkPos, ClaimInstance> DimensionClaims = CLAIMS.get(dimension);
-
-            for (ChunkPos pos : DimensionClaims.keySet()) {
-                ClaimInstance claim = DimensionClaims.get(pos);
-
-                if (predicate.test(claim)) {
-                    toRemove.add(Pair.of(dimension, pos));
-                }
+        for (Map.Entry<ClaimKey, ClaimInstance> entry : CLAIMS.entrySet()) {
+            if (predicate.test(entry.getValue())) {
+                toRemove.add(entry.getKey());
             }
         }
 
-        for (Pair<Integer, ChunkPos> pair : toRemove) {
-            unclaim(pair.first(), pair.second());
+        for (ClaimKey key : toRemove) {
+            removeClaim(key);
         }
     }
 
@@ -142,11 +121,12 @@ public class ClaimManager {
 
     public static void clear() {
         CLAIMS.clear();
+        initialSync = new ClaimSyncMessage();
         currentTickUpdates = new ClaimSyncMessage();
     }
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
-        WarClaimsNetworking.WRAPPER.sendTo(new ClaimSyncMessage(CLAIMS), playerMP);
+        WarClaimsNetworking.WRAPPER.sendTo(initialSync, playerMP);
     }
 
     public static void loadFromFile(String worldPath) {
@@ -156,7 +136,7 @@ public class ClaimManager {
             return;
         }
 
-        try (Reader reader = new FileReader(file)) {
+        try (FileReader reader = new FileReader(file)) {
             JsonObject json = JsonUtil.fromReader(reader, JsonObject.class);
 
             if (!WarClaims.isCorrectFileVersion(json.get(WarClaims.FILE_VERSION_NAME))) {
@@ -175,37 +155,27 @@ public class ClaimManager {
                     continue;
                 }
 
-                int dimension;
+                ClaimKey key;
                 try {
-                    dimension = Integer.parseInt(entry.getKey());
-                } catch (NumberFormatException ignored) {
+                    key = ClaimKey.fromString(entry.getKey());
+                } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {
                     continue;
                 }
 
-                JsonObject dimensionJson = entry.getValue().getAsJsonObject();
-
-
-                for (Map.Entry<String, JsonElement> dimensionEntry : dimensionJson.entrySet()) {
-                    if (!dimensionEntry.getValue().isJsonObject()) {
-                        continue;
-                    }
-
-                    ChunkPos pos;
-                    ClaimInstance claim;
-                    try {
-                        pos = JsonUtil.toChunkPos(dimensionEntry.getKey());
-                        claim = ClaimInstance.fromJson(dimensionEntry.getValue().getAsJsonObject());
-                    } catch (Throwable ignored) {
-                        continue;
-                    }
-
-                    setClaim(dimension, pos, claim);
+                ClaimInstance claim;
+                try {
+                    claim = ClaimInstance.fromJson(entry.getValue().getAsJsonObject());
+                }catch (RuntimeException ignored) {
+                    continue;
                 }
+                setClaim(key, claim);
             }
 
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to load Claims: {}", e.getMessage());
         }
+
+        initialSync = new ClaimSyncMessage(CLAIMS);
     }
 
     public static void saveToFile(String worldPath) {
@@ -227,16 +197,8 @@ public class ClaimManager {
             JsonObject json = new JsonObject();
             json.add(WarClaims.FILE_VERSION_NAME, new JsonPrimitive(WarClaims.FILE_VERSION));
 
-            for (Integer dimension : CLAIMS.keySet()) {
-                HashMap<ChunkPos, ClaimInstance> DimensionClaims = CLAIMS.get(dimension);
-                JsonObject dimensionJson = new JsonObject();
-
-                for (ChunkPos pos : DimensionClaims.keySet()) {
-                    ClaimInstance claim = DimensionClaims.get(pos);
-                    dimensionJson.add(JsonUtil.fromChunkPos(pos), ClaimInstance.toJson(claim));
-                }
-
-                json.add(dimension.toString(), dimensionJson);
+            for (Map.Entry<ClaimKey, ClaimInstance> entry : CLAIMS.entrySet()) {
+                json.add(entry.getKey().toString(), entry.getValue().toJson());
             }
 
             JsonUtil.toWriter(writer, json);
