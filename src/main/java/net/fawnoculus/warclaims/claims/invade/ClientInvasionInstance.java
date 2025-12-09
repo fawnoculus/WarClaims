@@ -22,11 +22,11 @@ public class ClientInvasionInstance {
         return String.format("%1$06.2f%% (%2$d/%3$d)", this.getCompletion() * 100.0, passedTicks, requiredTicks);
     }
 
-    public ClientInvasionInstance fromByteBuff(ByteBuf buf) {
+    public static ClientInvasionInstance fromByteBuff(ByteBuf buf) {
         return new ClientInvasionInstance(buf.readLong(), buf.readLong());
     }
 
     public ITextComponent makeTooltip(ClaimInstance claim, FactionInstance team, FactionInstance invadingTeam) {
-        return claim.makeTooltip(team).appendText(" invaded by" + invadingTeam.name + " " + this.getCompletionPercentage());
+        return claim.makeTooltip(team).appendText(" invaded by " + invadingTeam.name + " " + this.getCompletionPercentage());
     }
 }

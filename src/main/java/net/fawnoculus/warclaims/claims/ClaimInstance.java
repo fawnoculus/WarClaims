@@ -1,11 +1,11 @@
 package net.fawnoculus.warclaims.claims;
 
 import com.google.gson.JsonObject;
-import io.netty.buffer.ByteBuf;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class ClaimInstance {
@@ -30,20 +30,8 @@ public class ClaimInstance {
         return new ClaimInstance(factionId, level);
     }
 
-    public static void toByteBuff(ByteBuf buf, ClaimInstance claim) {
-        buf.writeLong(claim.factionId.getMostSignificantBits());
-        buf.writeLong(claim.factionId.getLeastSignificantBits());
-        buf.writeInt(claim.level);
-    }
-
-    public static ClaimInstance fromBytes(ByteBuf buf) {
-        UUID factionId = new UUID(buf.readLong(), buf.readLong());
-        int level = buf.readInt();
-        return new ClaimInstance(factionId, level);
-    }
-
     public ITextComponent makeTooltip(FactionInstance team) {
-        return new TextComponentString(team.name + "(" + this.level + ")");
+        return new TextComponentString(team.name + " (" + this.level + ")");
     }
 
 
@@ -53,5 +41,13 @@ public class ClaimInstance {
                 "factionId=" + factionId +
                 ", level=" + level +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ClaimInstance)) return false;
+        ClaimInstance that = (ClaimInstance) o;
+        return level == that.level && Objects.equals(factionId, that.factionId);
     }
 }

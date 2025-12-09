@@ -70,6 +70,11 @@ public class InvasionInstance {
 
     public void writeClientInstance(ByteBuf buf) {
         buf.writeLong(this.tickProgress);
+        if (this.defenderOnline) {
+            buf.writeLong(this.requiredTicksOnline);
+        } else {
+            buf.writeLong(this.requiredTicksOffline);
+        }
     }
 
     public boolean onTick(MinecraftServer server, InvasionKey key) {

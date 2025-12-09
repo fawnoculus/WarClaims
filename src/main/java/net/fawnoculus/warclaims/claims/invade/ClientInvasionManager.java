@@ -1,6 +1,7 @@
 package net.fawnoculus.warclaims.claims.invade;
 
 import net.fawnoculus.warclaims.WarClaims;
+import net.fawnoculus.warclaims.claims.ClaimKey;
 import net.fawnoculus.warclaims.claims.faction.ClientFactionManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.networking.messages.InvasionSyncMessage;
@@ -18,39 +19,51 @@ import xaero.minimap.XaeroMinimapStandaloneSession;
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 public class ClientInvasionManager {
-    private static final HashMap<Integer, HashMap<ChunkPos, InvasionInstance>> INVASIONS = new HashMap<>();
+    private static final Map<InvasionKey, ClientInvasionInstance> INVASIONS = new HashMap<>();
+    private static final Map<ClaimKey, InvasionKey> INVASIONS_BY_POS = new HashMap<>();
 
-    public static @Nullable InvasionInstance get(int dimension, int chunkX, int chunkZ) {
-        HashMap<ChunkPos, InvasionInstance> dimensionClaims = INVASIONS.get(dimension);
-        if (dimensionClaims == null) {
-            return null;
-        }
-        return dimensionClaims.get(new ChunkPos(chunkX, chunkZ));
+    public static @Nullable InvasionKey fromPos(int dimension, int chunkX, int chunkZ) {
+        return INVASIONS_BY_POS.get(new ClaimKey(dimension, chunkX, chunkZ));
     }
 
-    private static void setInvasion(int dimension, ChunkPos pos, InvasionInstance claim) {
-        HashMap<ChunkPos, InvasionInstance> dimensionClaims = INVASIONS.get(dimension);
-        if (dimensionClaims == null) {
-            dimensionClaims = new HashMap<>();
-        }
+    public static @Nullable ClientInvasionInstance getInvasion(InvasionKey key) {
+        return INVASIONS.get(key);
+    }
 
-        if (claim == null) {
-            dimensionClaims.remove(pos);
-        } else {
-            dimensionClaims.put(pos, claim);
+    public static @Nullable ClientInvasionInstance get(int dimension, int chunkX, int chunkZ) {
+        InvasionKey invasionKey = fromPos(dimension, chunkX, chunkZ);
+        if (invasionKey == null) {
+            return null;
         }
+        return getInvasion(invasionKey);
+    }
 
-        INVASIONS.put(dimension, dimensionClaims);
+    private static void setInvasion(InvasionKey key, ClientInvasionInstance invasion) {
+        INVASIONS.put(key, invasion);
+    }
+
+    private static void setInvasionPos(ClaimKey claimKey, InvasionKey invasionKey) {
+        INVASIONS_BY_POS.put(claimKey, invasionKey);
+    }
+
+    private static void removeInvasion(InvasionKey key) {
+        INVASIONS.remove(key);
+    }
+
+    private static void removeInvasionPos(ClaimKey claimKey) {
+        INVASIONS_BY_POS.remove(claimKey);
     }
 
     public static @Nullable FactionInstance getInvadingTeam(int dimension, int chunkX, int chunkZ) {
-        InvasionInstance claim = get(dimension, chunkX, chunkZ);
-        if (claim != null) {
-            return ClientFactionManager.get(claim.factionId);
+        InvasionKey key = fromPos(dimension, chunkX, chunkZ);
+        if (key == null) {
+            return null;
         }
-        return null;
+
+        return ClientFactionManager.get(key.attackingFaction);
     }
 
     public static void clear() {
@@ -65,17 +78,25 @@ public class ClientInvasionManager {
         } catch (Throwable ignored) {
         }
 
+        for (Map.Entry<InvasionKey, ClientInvasionInstance> entry : message.getClientInvasions().entrySet()) {
+            if (entry.getValue() == null) {
+                removeInvasion(entry.getKey());
+                continue;
+            }
+            setInvasion(entry.getKey(), entry.getValue());
+        }
+
         HashSet<ChunkPos> regionsToUpdate = new HashSet<>();
+        for (Map.Entry<ClaimKey, InvasionKey> entry : message.getInvasionsByPos().entrySet()) {
+            if (entry.getValue() == null) {
+                removeInvasionPos(entry.getKey());
+                continue;
+            }
 
-        for (Integer dimensionId : message.getMap().keySet()) {
-            HashMap<ChunkPos, InvasionInstance> dimensionClaims = message.getMap().get(dimensionId);
+            setInvasionPos(entry.getKey(), entry.getValue());
 
-            for (ChunkPos pos : dimensionClaims.keySet()) {
-                setInvasion(dimensionId, pos, dimensionClaims.get(pos));
-
-                if (dimensionId == currentDimension) {
-                    regionsToUpdate.add(chunkToRegion(pos));
-                }
+            if (entry.getKey().dimension == currentDimension) {
+                regionsToUpdate.add(chunkToRegion(entry.getKey().pos));
             }
         }
 

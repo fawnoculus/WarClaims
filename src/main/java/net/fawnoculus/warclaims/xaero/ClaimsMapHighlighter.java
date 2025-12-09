@@ -5,7 +5,6 @@ import net.fawnoculus.warclaims.claims.ClientClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.invade.ClientInvasionInstance;
 import net.fawnoculus.warclaims.claims.invade.ClientInvasionManager;
-import net.fawnoculus.warclaims.claims.invade.InvasionInstance;
 import net.minecraft.util.text.ITextComponent;
 import xaero.map.highlight.ChunkHighlighter;
 
@@ -39,8 +38,9 @@ public class ClaimsMapHighlighter extends ChunkHighlighter {
 
     @Override
     protected int[] getColors(int dimension, int chunkX, int chunkZ) {
+        ClaimInstance claim = ClientClaimManager.get(dimension, chunkX, chunkZ);
         FactionInstance faction = ClientClaimManager.getFaction(dimension, chunkX, chunkZ);
-        if (faction == null) {
+        if (claim == null || faction == null) {
             return null;
         }
 
@@ -62,11 +62,11 @@ public class ClaimsMapHighlighter extends ChunkHighlighter {
         FactionInstance westInvadingFaction = ClientInvasionManager.getInvadingTeam(dimension, chunkX - 1, chunkZ);
         boolean westIsSame = faction == westFaction && invadingFaction == westInvadingFaction;
 
-        this.resultStore[MIDDLE] = faction.makeColor(invadingFaction, true);
-        this.resultStore[NORTH] = faction.makeColor(invadingFaction, northIsSame);
-        this.resultStore[EAST] = faction.makeColor(invadingFaction, eastIsSame);
-        this.resultStore[SOUTH] = faction.makeColor(invadingFaction, southIsSame);
-        this.resultStore[WEST] = faction.makeColor(invadingFaction, westIsSame);
+        this.resultStore[MIDDLE] = faction.makeColor(invadingFaction, claim.level, true);
+        this.resultStore[NORTH] = faction.makeColor(invadingFaction, claim.level, northIsSame);
+        this.resultStore[EAST] = faction.makeColor(invadingFaction, claim.level, eastIsSame);
+        this.resultStore[SOUTH] = faction.makeColor(invadingFaction, claim.level, southIsSame);
+        this.resultStore[WEST] = faction.makeColor(invadingFaction, claim.level, westIsSame);
         return this.resultStore;
     }
 

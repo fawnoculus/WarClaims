@@ -222,16 +222,28 @@ public class FactionInstance {
         return this.owner.equals(id);
     }
 
-    public int makeColor(@Nullable FactionInstance invadingTeam, boolean isMiddle) {
+    public int makeColor(@Nullable FactionInstance invadingTeam, int claimLevel, boolean isMiddle) {
         int outColour = this.color;
         if (invadingTeam != null) {
             outColour = ColorUtil.lerp(0.5f, this.color, invadingTeam.color);
         }
 
         if (isMiddle) {
-            return ColorUtil.withAlpha(255, outColour);
+            return ColorUtil.withAlpha(alphaFromLevel(claimLevel), outColour);
         }
 
-        return ColorUtil.withAlpha(60, outColour);
+        return ColorUtil.withAlpha(255, outColour);
+    }
+
+    private int alphaFromLevel(int level) {
+        switch (level) {
+            case 0: return 40;
+            case 1: return 60;
+            case 2: return 80;
+            case 3: return 100;
+            case 4: return 120;
+            case 5: return 140;
+            default: return 0;
+        }
     }
 }
