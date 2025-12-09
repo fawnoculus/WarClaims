@@ -46,39 +46,39 @@ public class ClaimSelectionCommand extends CommandBase {
         int startChunkX;
         try {
             startChunkX = Integer.parseInt(args[0]);
-        }catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             throw new NumberInvalidException("%1$s is not a valid integer (start-chunk-x)", args[0]);
         }
 
         int startChunkZ;
         try {
             startChunkZ = Integer.parseInt(args[1]);
-        }catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             throw new NumberInvalidException("%1$s is not a valid integer (start-ChunkZ)", args[1]);
         }
 
         int endChunkX;
         try {
             endChunkX = Integer.parseInt(args[2]);
-        }catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             throw new NumberInvalidException("%1$s is not a valid integer (end-ChunkX)", args[2]);
         }
 
         int endChunkZ;
         try {
             endChunkZ = Integer.parseInt(args[3]);
-        }catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             throw new NumberInvalidException("%1$s is not a valid integer (end-ChunkZ)", args[3]);
         }
 
         int level;
         try {
             level = Integer.parseInt(args[4]);
-        }catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             throw new NumberInvalidException("%1$s is not a valid integer (level)", args[4]);
         }
 
-        if (level < 0  || level > 4) {
+        if (level < 0 || level > 4) {
             throw new NumberInvalidException("level %1$s invalid, must be between 0 and 4", args[2]);
         }
 

@@ -1,7 +1,6 @@
 package net.fawnoculus.warclaims.commands;
 
 import com.google.common.collect.ImmutableList;
-import net.fawnoculus.warclaims.WarClaimsConfig;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
@@ -19,20 +18,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class ClaimSingleCommand extends CommandBase {
+public class ForceClaimSelectionCommand extends CommandBase {
+    @Override
+    public int getRequiredPermissionLevel() {
+        return 2;
+    }
+
     @Override
     public String getName() {
-        return "claim-single";
+        return "force-claim-selection";
     }
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "claim-single <chunkX> <chunkZ> <level>";
+        return "force-claim-selection <start-chunkX> <start-chunkZ> <end-chunkX> <end-chunkZ> <level>";
     }
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        if (args.length < 3 || args[2].isEmpty()) {
+        if (args.length < 5) {
             throw new CommandException("Not Enough Arguments: " + this.getUsage(sender));
         }
 
@@ -42,38 +46,39 @@ public class ClaimSingleCommand extends CommandBase {
         EntityPlayerMP playerMP = (EntityPlayerMP) sender.getCommandSenderEntity();
         int dimension = playerMP.dimension;
 
-        int chunkX;
+        int startChunkX;
         try {
-            chunkX = Integer.parseInt(args[0]);
+            startChunkX = Integer.parseInt(args[0]);
         } catch (NumberFormatException ignored) {
-            throw new NumberInvalidException("%1$s is not a valid integer (chunkX)", args[0]);
+            throw new NumberInvalidException("%1$s is not a valid integer (start-chunk-x)", args[0]);
         }
 
-        int chunkZ;
+        int startChunkZ;
         try {
-            chunkZ = Integer.parseInt(args[1]);
+            startChunkZ = Integer.parseInt(args[1]);
         } catch (NumberFormatException ignored) {
-            throw new NumberInvalidException("%1$s is not a valid integer (chunkZ)", args[1]);
+            throw new NumberInvalidException("%1$s is not a valid integer (start-ChunkZ)", args[1]);
         }
 
-        if (!WarClaimsConfig.isInClaimRange(playerMP.getPosition(), chunkX, chunkZ)) {
-            throw new CommandException(String.format("Chunk is to far away, Max Claim Distance is: %1$d chunks", WarClaimsConfig.claimDistance));
+        int endChunkX;
+        try {
+            endChunkX = Integer.parseInt(args[2]);
+        } catch (NumberFormatException ignored) {
+            throw new NumberInvalidException("%1$s is not a valid integer (end-ChunkX)", args[2]);
         }
 
-        FactionInstance claimingFaction = ClaimManager.getFaction(dimension, chunkX, chunkZ);
-        if (claimingFaction != null) {
-            throw new CommandException("Chunk is already Claimed by %1$s", claimingFaction.name);
+        int endChunkZ;
+        try {
+            endChunkZ = Integer.parseInt(args[3]);
+        } catch (NumberFormatException ignored) {
+            throw new NumberInvalidException("%1$s is not a valid integer (end-ChunkZ)", args[3]);
         }
 
         int level;
         try {
-            level = Integer.parseInt(args[2]);
+            level = Integer.parseInt(args[4]);
         } catch (NumberFormatException ignored) {
-            throw new NumberInvalidException("%1$s is not a valid integer (level)", args[2]);
-        }
-
-        if (level < 0 || level > 4) {
-            throw new NumberInvalidException("level %1$s invalid, must be between 0 and 4", args[2]);
+            throw new NumberInvalidException("%1$s is not a valid integer (level)", args[4]);
         }
 
         UUID selectedFaction = FactionManager.getSelectedFaction(playerMP);
@@ -86,28 +91,32 @@ public class ClaimSingleCommand extends CommandBase {
             throw new CommandException("The Team you have selected does not exist");
         }
 
-        if (!faction.isOfficer(playerMP)) {
-            throw new CommandException(String.format(
-                    "You do not have permission to claim chunks for \"%1$s\" you must be an officer or the owner",
-                    faction.name
-            ));
+        final int minX = Math.min(startChunkX, endChunkX);
+        final int maxX = Math.max(startChunkX, endChunkX);
+        final int minZ = Math.min(startChunkZ, endChunkZ);
+        final int maxZ = Math.max(startChunkZ, endChunkZ);
+
+        int successfullyClaimedChunks = 0;
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                ClaimManager.claim(dimension, x, z, selectedFaction, level);
+                successfullyClaimedChunks++;
+            }
         }
 
-        if (!ClaimManager.takeRequiredItems(playerMP, level)) {
-            throw new CommandException("You don't have the resources required to claim this chunk");
+        if (successfullyClaimedChunks > 0) {
+            sender.sendMessage(new TextComponentString(String.format("Force Claimed %1$d chunks", successfullyClaimedChunks)));
         }
-
-        ClaimManager.claim(dimension, chunkX, chunkZ, selectedFaction, level);
-        sender.sendMessage(new TextComponentString("Claimed the chunk at " + chunkX + ", " + chunkZ));
     }
 
     @Override
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, @Nullable BlockPos targetPos) {
-        if (args.length < 3) {
+        if (args.length < 5) {
             return getListOfStringsMatchingLastWord(args, ImmutableList.of("-2", "0", "100", "420", "666"));
         }
 
-        if (args.length == 3) {
+        if (args.length == 5) {
             return getListOfStringsMatchingLastWord(args, ImmutableList.of("0", "1", "2", "3", "4"));
         }
 

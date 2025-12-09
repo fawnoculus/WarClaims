@@ -10,6 +10,7 @@ public class WarClaimsConfig {
     public static Configuration configuration;
     public static int claimDistance = 16;
     public static int invadeDistance = 16;
+    public static boolean showTicksInInvasions = false;
 
     public static void synchronizeConfiguration(File configFile) {
         configuration = new Configuration(configFile);
@@ -30,6 +31,13 @@ public class WarClaimsConfig {
                 0,
                 Integer.MAX_VALUE,
                 "Maximum Invade distance in Chunks"
+        );
+
+        showTicksInInvasions = configuration.getBoolean(
+                "showTicksInInvasions",
+                Configuration.CATEGORY_GENERAL,
+                showTicksInInvasions,
+                "If tick progress and total tick amounts should be displayed in invasion tooltips"
         );
 
         if (configuration.hasChanged()) {

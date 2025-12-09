@@ -21,6 +21,24 @@ public class ClaimsMapHighlighter extends ChunkHighlighter {
         super(true);
     }
 
+    private static ITextComponent makeChunkTooltip(int dimension, int chunkX, int chunkZ) {
+        ClaimInstance claim = ClientClaimManager.get(dimension, chunkX, chunkZ);
+        FactionInstance team = ClientClaimManager.getFaction(dimension, chunkX, chunkZ);
+
+        if (claim != null && team != null) {
+
+            ClientInvasionInstance invasion = ClientInvasionManager.get(dimension, chunkX, chunkZ);
+            FactionInstance invadingTeam = ClientInvasionManager.getInvadingTeam(dimension, chunkX, chunkZ);
+            if (invasion != null && invadingTeam != null) {
+                return invasion.makeTooltip(claim, team, invadingTeam);
+            }
+
+            return claim.makeTooltip(team);
+        }
+
+        return null;
+    }
+
     @Override
     public int calculateRegionHash(int dimension, int regionX, int regionZ) {
         return 2;
@@ -86,23 +104,5 @@ public class ClaimsMapHighlighter extends ChunkHighlighter {
         if (tooltip != null) {
             list.add(tooltip);
         }
-    }
-
-    private static ITextComponent makeChunkTooltip(int dimension, int chunkX, int chunkZ) {
-        ClaimInstance claim = ClientClaimManager.get(dimension, chunkX, chunkZ);
-        FactionInstance team = ClientClaimManager.getFaction(dimension, chunkX, chunkZ);
-
-        if (claim != null && team != null) {
-
-            ClientInvasionInstance invasion = ClientInvasionManager.get(dimension, chunkX, chunkZ);
-            FactionInstance invadingTeam = ClientInvasionManager.getInvadingTeam(dimension, chunkX, chunkZ);
-            if (invasion != null && invadingTeam != null) {
-                return invasion.makeTooltip(claim, team, invadingTeam);
-            }
-
-            return claim.makeTooltip(team);
-        }
-
-        return null;
     }
 }

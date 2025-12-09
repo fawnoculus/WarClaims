@@ -29,7 +29,10 @@ public class WarClaimsCommonProxy {
         event.registerServerCommand(new UnclaimSelectionCommand());
         event.registerServerCommand(new InvadeSingleCommand());
         event.registerServerCommand(new InvadeSelectionCommand());
-        event.registerServerCommand(new ForceClaimCommand());
+        event.registerServerCommand(new ForceClaimSelectionCommand());
+        event.registerServerCommand(new ForceClaimSingleCommand());
+        event.registerServerCommand(new ForceUnclaimSelectionCommand());
+        event.registerServerCommand(new ForceUnclaimSingleCommand());
         event.registerServerCommand(new FactionCommand());
         event.registerServerCommand(new CurrentFactionCommand());
     }

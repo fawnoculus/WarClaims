@@ -25,14 +25,10 @@ import java.util.function.Predicate;
 
 @SideOnly(Side.CLIENT)
 public class ClientClaimManager {
-    private static final HashMap<ClaimKey, ClaimInstance> CLAIMS = new HashMap<>();
+    private static final Map<ClaimKey, ClaimInstance> CLAIMS = new HashMap<>();
 
     public static @Nullable ClaimInstance get(int dimension, int chunkX, int chunkZ) {
         return CLAIMS.get(new ClaimKey(dimension, chunkX, chunkZ));
-    }
-
-    private static void setClaim(int dimension, ChunkPos pos, ClaimInstance claim) {
-        CLAIMS.put(new ClaimKey(dimension, pos), claim);
     }
 
     public static @Nullable FactionInstance getFaction(int dimension, int chunkX, int chunkZ) {
@@ -60,9 +56,9 @@ public class ClientClaimManager {
         for (ClaimKey key : message.getMap().keySet()) {
             ClaimInstance claim = message.getMap().get(key);
 
-            if(claim == null) {
+            if (claim == null) {
                 CLAIMS.remove(key);
-            }else {
+            } else {
                 CLAIMS.put(key, claim);
             }
 
@@ -110,6 +106,8 @@ public class ClientClaimManager {
     }
 
     private static void updateMapRegions(ChunkPos region) {
+        WarClaims.LOGGER.info("Updating region: {}, {}", region.x, region.z);
+
         Minecraft.getMinecraft().addScheduledTask(() -> {
             try {
                 @SuppressWarnings("deprecation")

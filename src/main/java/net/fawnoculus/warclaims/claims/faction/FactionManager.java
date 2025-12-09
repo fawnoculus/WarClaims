@@ -21,11 +21,10 @@ import java.util.Set;
 import java.util.UUID;
 
 public class FactionManager {
-    private static final HashMap<UUID, FactionInstance> FACTIONS = new HashMap<>();
-    private static final HashMap<String, UUID> FACTION_BY_NAME = new HashMap<>();
-    private static final HashMap<UUID, UUID> SELECTED_FACTION = new HashMap<>();
-    private static FactionSyncMessage initialSync = new FactionSyncMessage();
-    private static FactionSyncMessage currentTickUpdates = new FactionSyncMessage();
+    private static final Map<UUID, FactionInstance> FACTIONS = new HashMap<>();
+    private static final Map<UUID, FactionInstance> FACTION_TICK_CHANGES = new HashMap<>();
+    private static final Map<String, UUID> FACTION_BY_NAME = new HashMap<>();
+    private static final Map<UUID, UUID> SELECTED_FACTION = new HashMap<>();
 
     public static UUID makeFaction(EntityPlayerMP owner, String name) {
         UUID uuid = UUID.randomUUID();
@@ -36,8 +35,7 @@ public class FactionManager {
     public static void setFaction(UUID factionId, FactionInstance faction) {
         FACTIONS.put(factionId, faction);
         FACTION_BY_NAME.put(faction.name, factionId);
-        currentTickUpdates.setFaction(factionId, faction);
-        initialSync.setFaction(factionId, faction);
+        FACTION_TICK_CHANGES.put(factionId, faction);
     }
 
     public static void removeFaction(UUID factionId) {
@@ -48,8 +46,7 @@ public class FactionManager {
 
         FACTIONS.remove(factionId);
         FACTION_BY_NAME.remove(team.name);
-        initialSync.removeFaction(factionId);
-        currentTickUpdates.setFaction(factionId, null);
+        FACTION_TICK_CHANGES.put(factionId, null);
         ClaimManager.removeClaimIf(claim -> factionId.equals(claim.factionId));
         InvasionManager.removeInvasionIf(
                 entry -> factionId.equals(entry.getKey().attackingFaction) || factionId.equals(entry.getKey().defendingFaction)
@@ -81,9 +78,9 @@ public class FactionManager {
     }
 
     public static void onTick() {
-        if (!currentTickUpdates.isEmpty()) {
-            WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
-            currentTickUpdates = new FactionSyncMessage();
+        if (!FACTION_TICK_CHANGES.isEmpty()) {
+            WarClaimsNetworking.WRAPPER.sendToAll(new FactionSyncMessage(FACTION_TICK_CHANGES));
+            FACTION_TICK_CHANGES.clear();
         }
     }
 
@@ -91,12 +88,11 @@ public class FactionManager {
         FACTIONS.clear();
         FACTION_BY_NAME.clear();
         SELECTED_FACTION.clear();
-        initialSync = new FactionSyncMessage();
-        currentTickUpdates = new FactionSyncMessage();
+        FACTION_TICK_CHANGES.clear();
     }
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
-        WarClaimsNetworking.WRAPPER.sendTo(initialSync, playerMP);
+        WarClaimsNetworking.WRAPPER.sendTo(new FactionSyncMessage(FACTIONS), playerMP);
     }
 
     public static void loadFromFile(String worldPath) {
@@ -138,8 +134,6 @@ public class FactionManager {
 
                 setFaction(factionId, faction);
             }
-
-            initialSync = new FactionSyncMessage(FACTIONS);
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to load Factions: {}", e.getMessage());
             return;

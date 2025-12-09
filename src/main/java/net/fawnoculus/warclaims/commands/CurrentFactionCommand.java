@@ -68,7 +68,7 @@ public class CurrentFactionCommand extends CommandBase {
                 int red;
                 try {
                     red = Integer.parseInt(args[2]);
-                }catch (NumberFormatException ignored) {
+                } catch (NumberFormatException ignored) {
                     throw new NumberInvalidException("%1$s is not a valid integer (red)", args[2]);
                 }
                 if (red < 0 || red > 255) {
@@ -78,7 +78,7 @@ public class CurrentFactionCommand extends CommandBase {
                 int green;
                 try {
                     green = Integer.parseInt(args[3]);
-                }catch (NumberFormatException ignored) {
+                } catch (NumberFormatException ignored) {
                     throw new NumberInvalidException("%1$s is not a valid integer (green)", args[3]);
                 }
                 if (green < 0 || green > 255) {
@@ -88,7 +88,7 @@ public class CurrentFactionCommand extends CommandBase {
                 int blue;
                 try {
                     blue = Integer.parseInt(args[4]);
-                }catch (NumberFormatException ignored) {
+                } catch (NumberFormatException ignored) {
                     throw new NumberInvalidException("%1$s is not a valid integer (blue)", args[4]);
                 }
                 if (blue < 0 || blue > 255) {
@@ -259,7 +259,7 @@ public class CurrentFactionCommand extends CommandBase {
     }
 
     private void checkOfficer(EntityPlayerMP playerMP, FactionInstance faction, String permission) throws CommandException {
-        if(!faction.isOfficer(playerMP)) {
+        if (!faction.isOfficer(playerMP)) {
             throw new CommandException(String.format(
                     "You do not have permission %1$s \"%2$s\" you must be an officer or the owner",
                     permission, faction.name
@@ -286,10 +286,10 @@ public class CurrentFactionCommand extends CommandBase {
             EntityPlayerMP targetPlayer = server.getPlayerList().getPlayerByUsername(nameOrUuid);
             if (targetPlayer != null) {
                 playerId = targetPlayer.getGameProfile().getId();
-            }else {
+            } else {
                 playerId = UUID.fromString(nameOrUuid);
             }
-        }catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException ignored) {
             throw new CommandException(String.format("\"%1$s\" is neither a currently online player nor a uuid", nameOrUuid));
         }
 

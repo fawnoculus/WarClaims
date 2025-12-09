@@ -7,6 +7,7 @@ import com.mojang.realmsclient.util.Pair;
 import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
+import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
 import net.fawnoculus.warclaims.networking.messages.ClaimSyncMessage;
 import net.fawnoculus.warclaims.utils.JsonUtil;
@@ -27,9 +28,8 @@ import java.util.*;
 import java.util.function.Predicate;
 
 public class ClaimManager {
-    private static final HashMap<ClaimKey, ClaimInstance> CLAIMS = new HashMap<>();
-    private static ClaimSyncMessage initialSync = new ClaimSyncMessage();
-    private static ClaimSyncMessage currentTickUpdates = new ClaimSyncMessage();
+    private static final Map<ClaimKey, ClaimInstance> CLAIMS = new HashMap<>();
+    private static final Map<ClaimKey, ClaimInstance> CLAIMS_TICK_CHANGES = new HashMap<>();
 
     public static @Nullable ClaimInstance getClaim(int dimension, int chunkX, int chunkZ) {
         return CLAIMS.get(new ClaimKey(dimension, chunkX, chunkZ));
@@ -50,8 +50,7 @@ public class ClaimManager {
 
     public static void setClaim(ClaimKey key, ClaimInstance claim) {
         CLAIMS.put(key, claim);
-        initialSync.setClaim(key, claim);
-        currentTickUpdates.setClaim(key, claim);
+        CLAIMS_TICK_CHANGES.put(key, claim);
     }
 
     public static void unclaim(int dimension, int chunkX, int chunkZ) {
@@ -59,9 +58,9 @@ public class ClaimManager {
     }
 
     public static void removeClaim(ClaimKey key) {
+        InvasionManager.removeInvasionPos(key);
         CLAIMS.remove(key);
-        initialSync.removeClaim(key);
-        currentTickUpdates.setClaim(key, null);
+        CLAIMS_TICK_CHANGES.put(key, null);
     }
 
     public static void removeClaimIf(Predicate<ClaimInstance> predicate) {
@@ -80,6 +79,7 @@ public class ClaimManager {
 
     /**
      * Takes the Items required to claim a Chunk at the specified level out of the players inventory
+     *
      * @return true if the player had enough Resources, false if they didn't
      */
     public static boolean takeRequiredItems(EntityPlayer player, int level) {
@@ -91,7 +91,6 @@ public class ClaimManager {
             }
             if (stack.getCount() >= pair.second()) {
                 stack.shrink(pair.second());
-                stack.isEmpty();
                 return true;
             }
 
@@ -102,31 +101,37 @@ public class ClaimManager {
 
     public static Pair<Item, Integer> getRequiredItem(int level) {
         switch (level) {
-            case 0: return Pair.of(Items.IRON_INGOT, 1);
-            case 1: return Pair.of(Items.IRON_INGOT, 4);
-            case 2: return Pair.of(Items.GOLD_INGOT, 1);
-            case 3: return Pair.of(Items.GOLD_INGOT, 4);
-            case 4: return Pair.of(Items.DIAMOND, 4);
-            case 5: return Pair.of(Items.DIAMOND, 32);
-            default: return Pair.of(Items.AIR, 0);
+            case 0:
+                return Pair.of(Items.IRON_INGOT, 1);
+            case 1:
+                return Pair.of(Items.IRON_INGOT, 4);
+            case 2:
+                return Pair.of(Items.GOLD_INGOT, 1);
+            case 3:
+                return Pair.of(Items.GOLD_INGOT, 4);
+            case 4:
+                return Pair.of(Items.DIAMOND, 4);
+            case 5:
+                return Pair.of(Items.DIAMOND, 32);
+            default:
+                return Pair.of(Items.AIR, 0);
         }
     }
 
     public static void onTick() {
-        if (!currentTickUpdates.isEmpty()) {
-            WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
-            currentTickUpdates = new ClaimSyncMessage();
+        if (!CLAIMS_TICK_CHANGES.isEmpty()) {
+            WarClaimsNetworking.WRAPPER.sendToAll(new ClaimSyncMessage(CLAIMS_TICK_CHANGES));
+            CLAIMS_TICK_CHANGES.clear();
         }
     }
 
     public static void clear() {
         CLAIMS.clear();
-        initialSync = new ClaimSyncMessage();
-        currentTickUpdates = new ClaimSyncMessage();
+        CLAIMS_TICK_CHANGES.clear();
     }
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
-        WarClaimsNetworking.WRAPPER.sendTo(initialSync, playerMP);
+        WarClaimsNetworking.WRAPPER.sendTo(new ClaimSyncMessage(CLAIMS), playerMP);
     }
 
     public static void loadFromFile(String worldPath) {
@@ -165,7 +170,7 @@ public class ClaimManager {
                 ClaimInstance claim;
                 try {
                     claim = ClaimInstance.fromJson(entry.getValue().getAsJsonObject());
-                }catch (RuntimeException ignored) {
+                } catch (RuntimeException ignored) {
                     continue;
                 }
                 setClaim(key, claim);
@@ -174,8 +179,6 @@ public class ClaimManager {
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to load Claims: {}", e.getMessage());
         }
-
-        initialSync = new ClaimSyncMessage(CLAIMS);
     }
 
     public static void saveToFile(String worldPath) {

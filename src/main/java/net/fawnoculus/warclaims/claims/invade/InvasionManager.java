@@ -11,6 +11,8 @@ import net.fawnoculus.warclaims.networking.messages.InvasionSyncMessage;
 import net.fawnoculus.warclaims.utils.JsonUtil;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 
 import javax.annotation.Nullable;
@@ -23,11 +25,15 @@ import java.util.function.Predicate;
 public class InvasionManager {
     private static final Map<InvasionKey, InvasionInstance> INVASIONS = new HashMap<>();
     private static final Map<ClaimKey, InvasionKey> INVASIONS_BY_POS = new HashMap<>();
-    private static InvasionSyncMessage initialSync = new InvasionSyncMessage();
-    private static InvasionSyncMessage currentTickUpdates = new InvasionSyncMessage();
+    private static final Map<InvasionKey, InvasionInstance> INVASIONS_TICK_CHANGES = new HashMap<>();
+    private static final Map<ClaimKey, InvasionKey> INVASIONS_BY_POS_TICK_CHANGES = new HashMap<>();
 
     public static @Nullable InvasionKey fromPos(int dimension, int chunkX, int chunkZ) {
-        return INVASIONS_BY_POS.get(new ClaimKey(dimension, chunkX, chunkZ));
+        return fromPos(new ClaimKey(dimension, chunkX, chunkZ));
+    }
+
+    public static @Nullable InvasionKey fromPos(ClaimKey claimKey) {
+        return INVASIONS_BY_POS.get(claimKey);
     }
 
     public static @Nullable InvasionInstance getInvasion(InvasionKey key) {
@@ -53,28 +59,39 @@ public class InvasionManager {
 
     public static void setInvasion(InvasionKey key, InvasionInstance invasion) {
         INVASIONS.put(key, invasion);
-        initialSync.setInvasion(key, invasion);
-        currentTickUpdates.setInvasion(key, invasion);
+        INVASIONS_TICK_CHANGES.put(key, invasion);
     }
 
     public static void removeInvasion(InvasionKey key) {
         INVASIONS.remove(key);
-        initialSync.removeInvasion(key);
-        currentTickUpdates.setInvasion(key, null);
+        INVASIONS_TICK_CHANGES.put(key, null);
 
         removeInvasionPosIf(entry -> key.equals(entry.getValue()));
     }
 
     public static void setInvasionPos(ClaimKey claimKey, InvasionKey invasionKey) {
         INVASIONS_BY_POS.put(claimKey, invasionKey);
-        initialSync.setInvasionPos(claimKey, invasionKey);
-        currentTickUpdates.setInvasionPos(claimKey, invasionKey);
+        INVASIONS_BY_POS_TICK_CHANGES.put(claimKey, invasionKey);
     }
 
     public static void removeInvasionPos(ClaimKey key) {
+        updateInvasionPosRemoved(key);
         INVASIONS_BY_POS.remove(key);
-        initialSync.removeInvasionPos(key);
-        currentTickUpdates.setInvasionPos(key, null);
+        INVASIONS_BY_POS_TICK_CHANGES.put(key, null);
+    }
+
+    public static void updateInvasionPosRemoved(ClaimKey key) {
+        InvasionKey invasionKey = INVASIONS_BY_POS.get(key);
+        if (invasionKey != null) {
+            InvasionInstance invasion = INVASIONS.get(invasionKey);
+            if (invasion != null) {
+                invasion.removeChunk(key);
+                if (invasion.isEmpty()) {
+                    INVASIONS.remove(invasionKey);
+                    INVASIONS_TICK_CHANGES.put(invasionKey, null);
+                }
+            }
+        }
     }
 
     public static void removeInvasionIf(Predicate<Map.Entry<InvasionKey, InvasionInstance>> predicate) {
@@ -107,11 +124,22 @@ public class InvasionManager {
 
     /**
      * Takes the Items required to invade a Chunk out of the players inventory
+     *
      * @return true if the player had enough Resources, false if they didn't
      */
     public static boolean takeRequiredItems(EntityPlayer player) {
-        // TODO
-        return true;
+        for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
+            ItemStack stack = player.inventory.getStackInSlot(i);
+            if (stack.getItem() != Items.GOLD_INGOT) {
+                continue;
+            }
+            if (stack.getCount() >= 1) {
+                stack.shrink(1);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static void onTick(MinecraftServer server) {
@@ -126,8 +154,8 @@ public class InvasionManager {
             }
 
             if (entry.getValue().requiresClientSync) {
-                initialSync.setInvasion(entry.getKey(), entry.getValue());
-                currentTickUpdates.setInvasion(entry.getKey(), entry.getValue());
+                INVASIONS_TICK_CHANGES.put(entry.getKey(), entry.getValue());
+                entry.getValue().requiresClientSync = false;
             }
         }
 
@@ -135,19 +163,19 @@ public class InvasionManager {
             removeInvasion(invasionKey);
         }
 
-        if (!currentTickUpdates.isEmpty()) {
-            WarClaimsNetworking.WRAPPER.sendToAll(currentTickUpdates);
-            currentTickUpdates = new InvasionSyncMessage();
+        if (!INVASIONS_TICK_CHANGES.isEmpty()) {
+            WarClaimsNetworking.WRAPPER.sendToAll(new InvasionSyncMessage(INVASIONS_TICK_CHANGES, INVASIONS_BY_POS_TICK_CHANGES));
         }
     }
 
     public static void clear() {
         INVASIONS.clear();
-        currentTickUpdates = new InvasionSyncMessage();
+        INVASIONS_TICK_CHANGES.clear();
+        INVASIONS_BY_POS_TICK_CHANGES.clear();
     }
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
-        WarClaimsNetworking.WRAPPER.sendTo(initialSync, playerMP);
+        WarClaimsNetworking.WRAPPER.sendTo(new InvasionSyncMessage(INVASIONS, INVASIONS_BY_POS), playerMP);
     }
 
     public static void loadFromFile(String worldPath) {
@@ -190,8 +218,6 @@ public class InvasionManager {
                 }
             } catch (Throwable ignored) {
             }
-
-            initialSync = new InvasionSyncMessage(INVASIONS, INVASIONS_BY_POS);
         } catch (Throwable e) {
             WarClaims.LOGGER.warn("Failed to load Invasions: {}", e.getMessage());
         }

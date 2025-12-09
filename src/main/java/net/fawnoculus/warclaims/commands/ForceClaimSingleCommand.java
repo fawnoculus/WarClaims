@@ -1,7 +1,6 @@
 package net.fawnoculus.warclaims.commands;
 
 import com.google.common.collect.ImmutableList;
-import net.fawnoculus.warclaims.WarClaimsConfig;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
@@ -19,15 +18,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class ClaimSingleCommand extends CommandBase {
+public class ForceClaimSingleCommand extends CommandBase {
+    @Override
+    public int getRequiredPermissionLevel() {
+        return 2;
+    }
+
     @Override
     public String getName() {
-        return "claim-single";
+        return "force-claim-single";
     }
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "claim-single <chunkX> <chunkZ> <level>";
+        return "force-claim-single <chunkX> <chunkZ> <level>";
     }
 
     @Override
@@ -56,24 +60,11 @@ public class ClaimSingleCommand extends CommandBase {
             throw new NumberInvalidException("%1$s is not a valid integer (chunkZ)", args[1]);
         }
 
-        if (!WarClaimsConfig.isInClaimRange(playerMP.getPosition(), chunkX, chunkZ)) {
-            throw new CommandException(String.format("Chunk is to far away, Max Claim Distance is: %1$d chunks", WarClaimsConfig.claimDistance));
-        }
-
-        FactionInstance claimingFaction = ClaimManager.getFaction(dimension, chunkX, chunkZ);
-        if (claimingFaction != null) {
-            throw new CommandException("Chunk is already Claimed by %1$s", claimingFaction.name);
-        }
-
         int level;
         try {
             level = Integer.parseInt(args[2]);
         } catch (NumberFormatException ignored) {
             throw new NumberInvalidException("%1$s is not a valid integer (level)", args[2]);
-        }
-
-        if (level < 0 || level > 4) {
-            throw new NumberInvalidException("level %1$s invalid, must be between 0 and 4", args[2]);
         }
 
         UUID selectedFaction = FactionManager.getSelectedFaction(playerMP);
@@ -86,19 +77,8 @@ public class ClaimSingleCommand extends CommandBase {
             throw new CommandException("The Team you have selected does not exist");
         }
 
-        if (!faction.isOfficer(playerMP)) {
-            throw new CommandException(String.format(
-                    "You do not have permission to claim chunks for \"%1$s\" you must be an officer or the owner",
-                    faction.name
-            ));
-        }
-
-        if (!ClaimManager.takeRequiredItems(playerMP, level)) {
-            throw new CommandException("You don't have the resources required to claim this chunk");
-        }
-
         ClaimManager.claim(dimension, chunkX, chunkZ, selectedFaction, level);
-        sender.sendMessage(new TextComponentString("Claimed the chunk at " + chunkX + ", " + chunkZ));
+        sender.sendMessage(new TextComponentString("Force Claimed the chunk at " + chunkX + ", " + chunkZ));
     }
 
     @Override

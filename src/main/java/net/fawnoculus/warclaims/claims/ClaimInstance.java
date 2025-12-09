@@ -17,17 +17,17 @@ public class ClaimInstance {
         this.level = level;
     }
 
+    public static ClaimInstance fromJson(JsonObject json) {
+        UUID factionId = UUID.fromString(json.get("factionId").getAsString());
+        int level = json.get("level").getAsInt();
+        return new ClaimInstance(factionId, level);
+    }
+
     public JsonObject toJson() {
         JsonObject json = new JsonObject();
         json.addProperty("factionId", this.factionId.toString());
         json.addProperty("level", this.level);
         return json;
-    }
-
-    public static ClaimInstance fromJson(JsonObject json) {
-        UUID factionId = UUID.fromString(json.get("factionId").getAsString());
-        int level = json.get("level").getAsInt();
-        return new ClaimInstance(factionId, level);
     }
 
     public ITextComponent makeTooltip(FactionInstance team) {

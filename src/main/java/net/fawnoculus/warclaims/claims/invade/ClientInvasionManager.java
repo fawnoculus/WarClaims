@@ -7,6 +7,8 @@ import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.networking.messages.InvasionSyncMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import xaero.common.XaeroMinimapSession;
 import xaero.common.minimap.MinimapProcessor;
 import xaero.common.minimap.highlight.DimensionHighlighterHandler;
@@ -21,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+@SideOnly(Side.CLIENT)
 public class ClientInvasionManager {
     private static final Map<InvasionKey, ClientInvasionInstance> INVASIONS = new HashMap<>();
     private static final Map<ClaimKey, InvasionKey> INVASIONS_BY_POS = new HashMap<>();

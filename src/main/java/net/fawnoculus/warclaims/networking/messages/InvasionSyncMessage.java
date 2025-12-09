@@ -1,7 +1,6 @@
 package net.fawnoculus.warclaims.networking.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import net.fawnoculus.warclaims.claims.ClaimKey;
 import net.fawnoculus.warclaims.claims.invade.ClientInvasionInstance;
 import net.fawnoculus.warclaims.claims.invade.InvasionInstance;
@@ -18,7 +17,6 @@ public class InvasionSyncMessage implements IMessage {
     private final Map<InvasionKey, ClientInvasionInstance> clientInvasions;
     private final Map<InvasionKey, InvasionInstance> invasions;
     private final Map<ClaimKey, InvasionKey> invasionsByPos;
-    private @Nullable ByteBuf asBytes = null;
 
     public InvasionSyncMessage() {
         this.clientInvasions = new HashMap<>();
@@ -81,31 +79,22 @@ public class InvasionSyncMessage implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
-        if (this.asBytes != null) {
-            buf.writeBytes(this.asBytes);
-            return;
-        }
-        ByteBuf buffer = Unpooled.buffer();
-
         Set<Map.Entry<InvasionKey, InvasionInstance>> entrySet = this.invasions.entrySet();
-        buffer.writeInt(entrySet.size());
+        buf.writeInt(entrySet.size());
         for (Map.Entry<InvasionKey, InvasionInstance> entry : entrySet) {
-            buffer.writeLong(entry.getKey().attackingFaction.getMostSignificantBits());
-            buffer.writeLong(entry.getKey().attackingFaction.getLeastSignificantBits());
-            buffer.writeLong(entry.getKey().defendingFaction.getMostSignificantBits());
-            buffer.writeLong(entry.getKey().defendingFaction.getLeastSignificantBits());
+            buf.writeLong(entry.getKey().attackingFaction.getMostSignificantBits());
+            buf.writeLong(entry.getKey().attackingFaction.getLeastSignificantBits());
+            buf.writeLong(entry.getKey().defendingFaction.getMostSignificantBits());
+            buf.writeLong(entry.getKey().defendingFaction.getLeastSignificantBits());
 
-            entry.getValue().writeClientInstance(buffer);
+            entry.getValue().writeClientInstance(buf);
 
-            buffer.writeInt(entry.getValue().invadingChunks.size());
-            for (ClaimKey claimKey : entry.getValue().invadingChunks) {
-                buffer.writeInt(claimKey.dimension);
-                buffer.writeInt(claimKey.pos.x);
-                buffer.writeInt(claimKey.pos.z);
+            buf.writeInt(entry.getValue().invadingChunks.size());
+            for (ClaimKey claimKey : entry.getValue().invadingChunks.keySet()) {
+                buf.writeInt(claimKey.dimension);
+                buf.writeInt(claimKey.pos.x);
+                buf.writeInt(claimKey.pos.z);
             }
         }
-
-        this.asBytes = buffer;
-        buf.writeBytes(buffer);
     }
 }

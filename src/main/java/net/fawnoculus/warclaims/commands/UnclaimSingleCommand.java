@@ -11,6 +11,7 @@ import net.minecraft.command.NumberInvalidException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.TextComponentString;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -42,14 +43,14 @@ public class UnclaimSingleCommand extends CommandBase {
         int chunkX;
         try {
             chunkX = Integer.parseInt(args[0]);
-        }catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             throw new NumberInvalidException("%1$s is not a valid integer (chunkX)", args[0]);
         }
 
         int chunkZ;
         try {
             chunkZ = Integer.parseInt(args[1]);
-        }catch (NumberFormatException ignored) {
+        } catch (NumberFormatException ignored) {
             throw new NumberInvalidException("%1$s is not a valid integer (chunkZ)", args[1]);
         }
 
@@ -70,6 +71,7 @@ public class UnclaimSingleCommand extends CommandBase {
         }
 
         ClaimManager.unclaim(dimension, chunkX, chunkZ);
+        sender.sendMessage(new TextComponentString("Unclaimed the chunk at " + chunkX + ", " + chunkZ));
     }
 
     @Override

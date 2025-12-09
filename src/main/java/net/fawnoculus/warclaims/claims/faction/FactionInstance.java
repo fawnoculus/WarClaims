@@ -148,6 +148,10 @@ public class FactionInstance {
         return new FactionInstance(owner, color, name, officers, members, allies);
     }
 
+    private static int randomColor(Random random) {
+        return ColorUtil.fromHSV(random.nextFloat(), .9f, .9f);
+    }
+
     public FactionInstance withName(String newName) {
         return new FactionInstance(this.owner, this.color, newName, this.officers, this.members, this.allies);
     }
@@ -158,10 +162,6 @@ public class FactionInstance {
 
     public FactionInstance withOwner(UUID newOwner) {
         return new FactionInstance(newOwner, this.color, this.name, this.officers, this.members, this.allies);
-    }
-
-    private static int randomColor(Random random) {
-        return ColorUtil.fromHSV(random.nextFloat(), .9f, .9f);
     }
 
     public void setStatusNone(UUID uuid) {
@@ -237,13 +237,20 @@ public class FactionInstance {
 
     private int alphaFromLevel(int level) {
         switch (level) {
-            case 0: return 40;
-            case 1: return 60;
-            case 2: return 80;
-            case 3: return 100;
-            case 4: return 120;
-            case 5: return 140;
-            default: return 0;
+            case 0:
+                return 40;
+            case 1:
+                return 60;
+            case 2:
+                return 80;
+            case 3:
+                return 100;
+            case 4:
+                return 120;
+            case 5:
+                return 140;
+            default:
+                return 0;
         }
     }
 }

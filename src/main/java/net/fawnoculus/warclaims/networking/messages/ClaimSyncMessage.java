@@ -1,7 +1,6 @@
 package net.fawnoculus.warclaims.networking.messages;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import net.fawnoculus.warclaims.claims.ClaimInstance;
 import net.fawnoculus.warclaims.claims.ClaimKey;
 import net.minecraft.util.math.ChunkPos;
@@ -12,13 +11,12 @@ import java.util.*;
 
 public class ClaimSyncMessage implements IMessage {
     private final Map<ClaimKey, ClaimInstance> claims;
-    private @Nullable ByteBuf asBytes = null;
 
     public ClaimSyncMessage() {
         claims = new HashMap<>();
     }
 
-    public ClaimSyncMessage(HashMap<ClaimKey, ClaimInstance> claims) {
+    public ClaimSyncMessage(Map<ClaimKey, ClaimInstance> claims) {
         this.claims = claims;
     }
 
@@ -31,12 +29,10 @@ public class ClaimSyncMessage implements IMessage {
     }
 
     public void setClaim(ClaimKey key, @Nullable ClaimInstance claim) {
-        this.asBytes = null;
         claims.put(key, claim);
     }
 
     public void removeClaim(ClaimKey key) {
-        this.asBytes = null;
         claims.remove(key);
     }
 
@@ -76,12 +72,6 @@ public class ClaimSyncMessage implements IMessage {
 
     @Override
     public void toBytes(ByteBuf buf) {
-        if (this.asBytes != null) {
-            buf.writeBytes(this.asBytes);
-            return;
-        }
-        ByteBuf buffer = Unpooled.buffer();
-
         Map<Integer, List<ChunkPos>> removedClaims = new HashMap<>();
         Map<UUID, Map<Integer, List<ChunkData>>> changedClaims = new HashMap<>();
         for (Map.Entry<ClaimKey, ClaimInstance> entry : this.claims.entrySet()) {
@@ -96,32 +86,29 @@ public class ClaimSyncMessage implements IMessage {
                     .add(new ChunkData(entry.getKey().pos, entry.getValue().level));
         }
 
-        buffer.writeInt(removedClaims.size());
+        buf.writeInt(removedClaims.size());
         for (Map.Entry<Integer, List<ChunkPos>> entry : removedClaims.entrySet()) {
-            buffer.writeInt(entry.getKey());
-            buffer.writeInt(entry.getValue().size());
+            buf.writeInt(entry.getKey());
+            buf.writeInt(entry.getValue().size());
             for (ChunkPos pos : entry.getValue()) {
-                buffer.writeInt(pos.x);
-                buffer.writeInt(pos.z);
+                buf.writeInt(pos.x);
+                buf.writeInt(pos.z);
             }
         }
 
-        buffer.writeInt(changedClaims.size());
+        buf.writeInt(changedClaims.size());
         for (Map.Entry<UUID, Map<Integer, List<ChunkData>>> entry : changedClaims.entrySet()) {
-            buffer.writeLong(entry.getKey().getMostSignificantBits());
-            buffer.writeLong(entry.getKey().getLeastSignificantBits());
-            buffer.writeInt(entry.getValue().size());
+            buf.writeLong(entry.getKey().getMostSignificantBits());
+            buf.writeLong(entry.getKey().getLeastSignificantBits());
+            buf.writeInt(entry.getValue().size());
             for (Map.Entry<Integer, List<ChunkData>> factionEntry : entry.getValue().entrySet()) {
-                buffer.writeInt(factionEntry.getKey());
-                buffer.writeInt(factionEntry.getValue().size());
+                buf.writeInt(factionEntry.getKey());
+                buf.writeInt(factionEntry.getValue().size());
                 for (ChunkData data : factionEntry.getValue()) {
-                    data.toByteBuff(buffer);
+                    data.toByteBuff(buf);
                 }
             }
         }
-
-        this.asBytes = buffer;
-        buf.writeBytes(buffer);
     }
 
     private static class ChunkData {
@@ -133,14 +120,14 @@ public class ClaimSyncMessage implements IMessage {
             this.level = level;
         }
 
+        private static ChunkData fromByteBuff(ByteBuf buf) {
+            return new ChunkData(new ChunkPos(buf.readInt(), buf.readInt()), buf.readInt());
+        }
+
         private void toByteBuff(ByteBuf buf) {
             buf.writeInt(this.pos.x);
             buf.writeInt(this.pos.z);
             buf.writeInt(this.level);
-        }
-
-        private static ChunkData fromByteBuff(ByteBuf buf) {
-            return new ChunkData(new ChunkPos(buf.readInt(), buf.readInt()), buf.readInt());
         }
     }
 }

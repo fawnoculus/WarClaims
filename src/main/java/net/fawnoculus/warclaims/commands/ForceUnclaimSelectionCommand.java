@@ -1,9 +1,7 @@
 package net.fawnoculus.warclaims.commands;
 
 import com.google.common.collect.ImmutableList;
-import net.fawnoculus.warclaims.WarClaimsConfig;
 import net.fawnoculus.warclaims.claims.ClaimManager;
-import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -17,15 +15,20 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-public class UnclaimSelectionCommand extends CommandBase {
+public class ForceUnclaimSelectionCommand extends CommandBase {
+    @Override
+    public int getRequiredPermissionLevel() {
+        return 2;
+    }
+
     @Override
     public String getName() {
-        return "unclaim-selection";
+        return "force-unclaim-selection";
     }
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "unclaim-selection <start-chunkX> <start-chunkZ> <end-chunkX> <end-chunkZ>";
+        return "force-unclaim-selection <start-chunkX> <start-chunkZ> <end-chunkX> <end-chunkZ>";
     }
 
     @Override
@@ -39,7 +42,6 @@ public class UnclaimSelectionCommand extends CommandBase {
         }
         EntityPlayerMP playerMP = (EntityPlayerMP) sender.getCommandSenderEntity();
         int dimension = playerMP.dimension;
-        BlockPos playerPos = playerMP.getPosition();
 
         int startChunkX;
         try {
@@ -74,51 +76,17 @@ public class UnclaimSelectionCommand extends CommandBase {
         final int minZ = Math.min(startChunkZ, endChunkZ);
         final int maxZ = Math.max(startChunkZ, endChunkZ);
 
-        int outOfRangeChunks = 0;
-        int notClaimedChunks = 0;
-        int missingPermissionChunks = 0;
         int successfullyUnclaimedChunks = 0;
-        int totalChunks = 0;
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                totalChunks++;
-
-                if (!WarClaimsConfig.isInClaimRange(playerPos, x, z)) {
-                    outOfRangeChunks++;
-                    continue;
-                }
-
-                FactionInstance claimingFaction = ClaimManager.getFaction(dimension, x, z);
-                if (claimingFaction == null) {
-                    notClaimedChunks++;
-                    continue;
-                }
-
-                if (!claimingFaction.isOfficer(playerMP)) {
-                    missingPermissionChunks++;
-                    continue;
-                }
-
                 ClaimManager.unclaim(dimension, x, z);
                 successfullyUnclaimedChunks++;
             }
         }
 
-        if (outOfRangeChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("%1$d chunks where out of range", outOfRangeChunks)));
-        }
-
-        if (notClaimedChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("%1$d chunks where not Claimed", notClaimedChunks)));
-        }
-
-        if (missingPermissionChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("You didn't have the permission to unclaim %1$d chunks", missingPermissionChunks)));
-        }
-
         if (successfullyUnclaimedChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("Unclaimed %1$d/%2$d chunks", successfullyUnclaimedChunks, totalChunks)));
+            sender.sendMessage(new TextComponentString(String.format("Force Unclaimed %1$d chunks", successfullyUnclaimedChunks)));
         }
     }
 
