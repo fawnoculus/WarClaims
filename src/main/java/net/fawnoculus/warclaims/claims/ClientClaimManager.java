@@ -106,8 +106,6 @@ public class ClientClaimManager {
     }
 
     private static void updateMapRegions(ChunkPos region) {
-        WarClaims.LOGGER.info("Updating region: {}, {}", region.x, region.z);
-
         Minecraft.getMinecraft().addScheduledTask(() -> {
             try {
                 @SuppressWarnings("deprecation")

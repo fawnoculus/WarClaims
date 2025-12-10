@@ -12,11 +12,11 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 public class WarClaimsCommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         WarClaimsConfig.synchronizeConfiguration(event.getSuggestedConfigurationFile());
+        WarClaimsNetworking.initialize();
+        MinecraftForge.EVENT_BUS.register(ClaimEventHandler.class);
     }
 
     public void init(FMLInitializationEvent ignored) {
-        WarClaimsNetworking.initialize();
-        MinecraftForge.EVENT_BUS.register(ClaimEventHandler.class);
     }
 
     public void postInit(FMLPostInitializationEvent ignored) {

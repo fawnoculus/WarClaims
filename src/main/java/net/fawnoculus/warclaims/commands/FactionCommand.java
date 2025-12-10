@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class FactionCommand extends CommandBase {
-    private static final ImmutableList<String> POSSIBLE_SUB_COMMANDS = ImmutableList.of("create", "delete", "set-current", "list-all", "accept-invite");
+    private static final ImmutableList<String> POSSIBLE_SUB_COMMANDS = ImmutableList.of("create", "delete", "set-current", "list-all");
 
     @Override
     public String getName() {
@@ -122,7 +122,7 @@ public class FactionCommand extends CommandBase {
             return getListOfStringsMatchingLastWord(args, POSSIBLE_SUB_COMMANDS);
         }
 
-        if (args[0].equals("list-all") || args[0].equals("accept-invite")) {
+        if (args[0].equals("list-all")) {
             return Collections.emptyList();
         }
 

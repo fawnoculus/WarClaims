@@ -33,7 +33,7 @@ public class ForceUnclaimSelectionCommand extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        if (args.length < 5) {
+        if (args.length < 4) {
             throw new CommandException("Not Enough Arguments: " + this.getUsage(sender));
         }
 

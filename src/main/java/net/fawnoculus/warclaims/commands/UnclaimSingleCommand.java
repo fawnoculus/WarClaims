@@ -30,7 +30,7 @@ public class UnclaimSingleCommand extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        if (args.length < 3 || args[2].isEmpty()) {
+        if (args.length < 2 || args[1].isEmpty()) {
             throw new CommandException("Not Enough Arguments: " + this.getUsage(sender));
         }
 

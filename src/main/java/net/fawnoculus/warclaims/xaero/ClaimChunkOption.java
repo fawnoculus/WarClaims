@@ -28,7 +28,7 @@ public class ClaimChunkOption extends RightClickOption {
     }
 
     private static boolean isMultiChunk(int startX, int endX, int startZ, int endZ) {
-        return startX != endX && startZ != endZ;
+        return startX != endX || startZ != endZ;
     }
 
     private boolean isMultiChunk() {

@@ -25,9 +25,9 @@ public class InvasionInstance {
     private FactionInstance defendingFaction = null;
 
     public InvasionInstance() {
-        this.tickProgress = 0;
-        this.requiredTicksOnline = 0;
-        this.requiredTicksOffline = 0;
+        this.tickProgress = 20 * 5;
+        this.requiredTicksOnline = 20 * 60;
+        this.requiredTicksOffline = 20 * 60 * 5;
         this.invadingChunks = new HashMap<>();
     }
 
@@ -105,11 +105,7 @@ public class InvasionInstance {
 
     public void writeClientInstance(ByteBuf buf) {
         buf.writeLong(this.tickProgress);
-        if (this.defenderOnline) {
-            buf.writeLong(this.requiredTicksOnline);
-        } else {
-            buf.writeLong(this.requiredTicksOffline);
-        }
+        buf.writeLong(this.requiredTicks());
     }
 
     public boolean onTick(MinecraftServer server, InvasionKey key) {
@@ -144,6 +140,12 @@ public class InvasionInstance {
         }
 
         if (this.defenderOnline != newDefenderOnline) {
+            if (newDefenderOnline) {
+                this.tickProgress = (long) ((double) this.tickProgress * ((double) this.requiredTicksOnline / (double) requiredTicksOffline));
+            } else {
+                this.tickProgress = (long) ((double) this.tickProgress * ((double) this.requiredTicksOffline / (double) requiredTicksOnline));
+            }
+
             this.defenderOnline = newDefenderOnline;
             this.requiresClientSync = true;
         }
@@ -158,8 +160,23 @@ public class InvasionInstance {
             this.requiresClientSync = true;
         }
 
+        if (tickProgress < 0) {
+            return true;
+        }
+
         if (tickProgress >= requiredTicks()) {
             for (ClaimKey claimKey : this.invadingChunks.keySet()) {
+                ClaimInstance claim = ClaimManager.getClaim(claimKey);
+                if (claim != null && claim.level == 5) {
+                    ClaimManager.transformClaims(previousClaim -> {
+                        if (key.defendingFaction.equals(previousClaim.factionId)) {
+                            return new ClaimInstance(key.attackingFaction, 0);
+                        }
+                        return previousClaim;
+                    });
+                    return true;
+                }
+
                 ClaimManager.setClaim(claimKey, new ClaimInstance(key.attackingFaction, 0));
             }
             return true;

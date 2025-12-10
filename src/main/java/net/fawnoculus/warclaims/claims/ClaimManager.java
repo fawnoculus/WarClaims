@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class ClaimManager {
@@ -33,6 +34,10 @@ public class ClaimManager {
 
     public static @Nullable ClaimInstance getClaim(int dimension, int chunkX, int chunkZ) {
         return CLAIMS.get(new ClaimKey(dimension, chunkX, chunkZ));
+    }
+
+    public static @Nullable ClaimInstance getClaim(ClaimKey claimKey) {
+        return CLAIMS.get(claimKey);
     }
 
     public static @Nullable FactionInstance getFaction(int dimension, int chunkX, int chunkZ) {
@@ -74,6 +79,12 @@ public class ClaimManager {
 
         for (ClaimKey key : toRemove) {
             removeClaim(key);
+        }
+    }
+
+    public static void transformClaims(Function<ClaimInstance, ClaimInstance> claimTransformer) {
+        for (Map.Entry<ClaimKey, ClaimInstance> entry : CLAIMS.entrySet()) {
+            setClaim(entry.getKey(), claimTransformer.apply(entry.getValue()));
         }
     }
 

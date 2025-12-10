@@ -1,13 +1,29 @@
 package net.fawnoculus.warclaims.claims;
 
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
+import net.fawnoculus.warclaims.claims.faction.FactionManager;
+import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 
 public class ClaimEventHandler {
+    @SubscribeEvent
+    public static void breakBlock(PlayerEvent.PlayerLoggedInEvent loggedInEvent) {
+        if (!(loggedInEvent.player instanceof EntityPlayerMP)) {
+            return;
+        }
+
+        EntityPlayerMP playerMP = (EntityPlayerMP) loggedInEvent.player;
+
+        FactionManager.onPlayerJoin(playerMP);
+        ClaimManager.onPlayerJoin(playerMP);
+        InvasionManager.onPlayerJoin(playerMP);
+    }
+
     @SubscribeEvent
     public static void breakBlock(BlockEvent.BreakEvent breakEvent) {
         int dimension = breakEvent.getWorld().provider.getDimension();

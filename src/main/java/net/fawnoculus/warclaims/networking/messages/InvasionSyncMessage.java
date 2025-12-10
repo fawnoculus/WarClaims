@@ -66,6 +66,12 @@ public class InvasionSyncMessage implements IMessage {
             UUID defendingFaction = new UUID(buf.readLong(), buf.readLong());
             InvasionKey invasionKey = new InvasionKey(attackingFaction, defendingFaction);
 
+            boolean isNull = buf.readBoolean();
+            if (isNull) {
+                this.clientInvasions.put(invasionKey, null);
+                continue;
+            }
+
             ClientInvasionInstance clientInvasion = ClientInvasionInstance.fromByteBuff(buf);
 
             this.clientInvasions.put(invasionKey, clientInvasion);
@@ -87,6 +93,12 @@ public class InvasionSyncMessage implements IMessage {
             buf.writeLong(entry.getKey().defendingFaction.getMostSignificantBits());
             buf.writeLong(entry.getKey().defendingFaction.getLeastSignificantBits());
 
+            if (entry.getValue() == null) {
+                buf.writeBoolean(true);
+                continue;
+            }
+
+            buf.writeBoolean(false);
             entry.getValue().writeClientInstance(buf);
 
             buf.writeInt(entry.getValue().invadingChunks.size());

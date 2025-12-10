@@ -82,15 +82,19 @@ public class InvasionManager {
 
     public static void updateInvasionPosRemoved(ClaimKey key) {
         InvasionKey invasionKey = INVASIONS_BY_POS.get(key);
-        if (invasionKey != null) {
-            InvasionInstance invasion = INVASIONS.get(invasionKey);
-            if (invasion != null) {
-                invasion.removeChunk(key);
-                if (invasion.isEmpty()) {
-                    INVASIONS.remove(invasionKey);
-                    INVASIONS_TICK_CHANGES.put(invasionKey, null);
-                }
-            }
+        if (invasionKey == null) {
+            return;
+        }
+
+        InvasionInstance invasion = INVASIONS.get(invasionKey);
+        if (invasion == null) {
+            return;
+        }
+
+        invasion.removeChunk(key);
+        if (invasion.isEmpty()) {
+            INVASIONS.remove(invasionKey);
+            INVASIONS_TICK_CHANGES.put(invasionKey, null);
         }
     }
 

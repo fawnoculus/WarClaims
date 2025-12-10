@@ -10,9 +10,9 @@ public class ClientInvasionInstance {
     public final long requiredTicks;
     public final long passedTicks;
 
-    public ClientInvasionInstance(long requiredTicks, long passedTicks) {
-        this.requiredTicks = requiredTicks;
+    public ClientInvasionInstance(long passedTicks, long requiredTicks) {
         this.passedTicks = passedTicks;
+        this.requiredTicks = requiredTicks;
     }
 
     public static ClientInvasionInstance fromByteBuff(ByteBuf buf) {
@@ -20,7 +20,7 @@ public class ClientInvasionInstance {
     }
 
     public double getCompletion() {
-        return (double) requiredTicks / (double) passedTicks;
+        return (double) passedTicks / (double) requiredTicks;
     }
 
     public String getCompletionPercentage() {

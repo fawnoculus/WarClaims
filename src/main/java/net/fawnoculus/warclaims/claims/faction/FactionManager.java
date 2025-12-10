@@ -48,9 +48,7 @@ public class FactionManager {
         FACTION_BY_NAME.remove(team.name);
         FACTION_TICK_CHANGES.put(factionId, null);
         ClaimManager.removeClaimIf(claim -> factionId.equals(claim.factionId));
-        InvasionManager.removeInvasionIf(
-                entry -> factionId.equals(entry.getKey().attackingFaction) || factionId.equals(entry.getKey().defendingFaction)
-        );
+        InvasionManager.removeInvasionIf(entry -> factionId.equals(entry.getKey().attackingFaction));
     }
 
     public static @Nullable FactionInstance getFaction(UUID factionId) {

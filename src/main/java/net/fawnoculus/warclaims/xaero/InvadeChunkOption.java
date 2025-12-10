@@ -28,7 +28,7 @@ public class InvadeChunkOption extends RightClickOption {
     }
 
     private static boolean isMultiChunk(int startX, int endX, int startZ, int endZ) {
-        return startX != endX && startZ != endZ;
+        return startX != endX || startZ != endZ;
     }
 
     private boolean isMultiChunk() {
@@ -39,7 +39,7 @@ public class InvadeChunkOption extends RightClickOption {
     public void onAction(GuiScreen guiScreen) {
         if (!this.isMultiChunk()) {
             guiScreen.mc.displayGuiScreen(new GuiChat(
-                    String.format("/invade-single single %1$d %2$d ", this.startX, this.startZ)
+                    String.format("/invade-single %1$d %2$d ", this.startX, this.startZ)
             ));
             return;
         }
