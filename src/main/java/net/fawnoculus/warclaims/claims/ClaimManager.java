@@ -84,7 +84,11 @@ public class ClaimManager {
 
     public static void transformClaims(Function<ClaimInstance, ClaimInstance> claimTransformer) {
         for (Map.Entry<ClaimKey, ClaimInstance> entry : CLAIMS.entrySet()) {
-            setClaim(entry.getKey(), claimTransformer.apply(entry.getValue()));
+            ClaimInstance previousClaim = entry.getValue();
+            ClaimInstance newClaim = claimTransformer.apply(previousClaim);
+            if (previousClaim != newClaim) {
+                setClaim(entry.getKey(), newClaim);
+            }
         }
     }
 

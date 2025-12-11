@@ -20,6 +20,7 @@ public class InvasionInstance {
     public long requiredTicksOffline;
     public Map<ClaimKey, Integer> invadingChunks;
     public boolean requiresClientSync = false;
+    public boolean isNew = true;
     boolean defenderOnline = false;
     private FactionInstance attackingFaction = null;
     private FactionInstance defendingFaction = null;
@@ -32,6 +33,7 @@ public class InvasionInstance {
     }
 
     public InvasionInstance(long tickProgress, long requiredTicksOnline, long requiredTicksOffline, HashMap<ClaimKey, Integer> invadingChunks) {
+        this.isNew = false;
         this.tickProgress = tickProgress;
         this.requiredTicksOnline = requiredTicksOnline;
         this.requiredTicksOffline = requiredTicksOffline;
@@ -109,6 +111,7 @@ public class InvasionInstance {
     }
 
     public boolean onTick(MinecraftServer server, InvasionKey key) {
+        this.isNew = false;
         if (attackingFaction == null) {
             attackingFaction = FactionManager.getFaction(key.attackingFaction);
             if (attackingFaction == null) {

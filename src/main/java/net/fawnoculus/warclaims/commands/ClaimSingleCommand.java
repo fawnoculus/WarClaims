@@ -62,18 +62,18 @@ public class ClaimSingleCommand extends CommandBase {
 
         FactionInstance claimingFaction = ClaimManager.getFaction(dimension, chunkX, chunkZ);
         if (claimingFaction != null) {
-            throw new CommandException("Chunk is already Claimed by %1$s", claimingFaction.name);
+            throw new CommandException(String.format("Chunk is already Claimed by %1$s", claimingFaction.name));
         }
 
         int level;
         try {
             level = Integer.parseInt(args[2]);
         } catch (NumberFormatException ignored) {
-            throw new NumberInvalidException("%1$s is not a valid integer (level)", args[2]);
+            throw new NumberInvalidException(String.format("%1$s is not a valid integer (level)", args[2]));
         }
 
         if (level < 0 || level > 4) {
-            throw new NumberInvalidException("level %1$s invalid, must be between 0 and 4", args[2]);
+            throw new NumberInvalidException(String.format("level %1$s invalid, must be between 0 and 4", args[2]));
         }
 
         UUID selectedFaction = FactionManager.getSelectedFaction(playerMP);

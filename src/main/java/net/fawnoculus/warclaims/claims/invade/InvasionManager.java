@@ -6,6 +6,8 @@ import com.google.gson.JsonPrimitive;
 import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.claims.ClaimInstance;
 import net.fawnoculus.warclaims.claims.ClaimKey;
+import net.fawnoculus.warclaims.claims.faction.FactionInstance;
+import net.fawnoculus.warclaims.claims.faction.FactionManager;
 import net.fawnoculus.warclaims.networking.WarClaimsNetworking;
 import net.fawnoculus.warclaims.networking.messages.InvasionSyncMessage;
 import net.fawnoculus.warclaims.utils.JsonUtil;
@@ -14,6 +16,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.text.TextComponentString;
 
 import javax.annotation.Nullable;
 import java.io.*;
@@ -167,9 +170,51 @@ public class InvasionManager {
             removeInvasion(invasionKey);
         }
 
-        if (!INVASIONS_TICK_CHANGES.isEmpty()) {
+        if (!INVASIONS_TICK_CHANGES.isEmpty() || !INVASIONS_BY_POS_TICK_CHANGES.isEmpty()) {
+            for (Map.Entry<InvasionKey, InvasionInstance> entry : INVASIONS_TICK_CHANGES.entrySet()) {
+                if (!entry.getValue().isNew) {
+                    continue;
+                }
+
+                FactionInstance attackingFaction = FactionManager.getFaction(entry.getKey().attackingFaction);
+                FactionInstance defendingFaction = FactionManager.getFaction(entry.getKey().defendingFaction);
+                if (attackingFaction == null || defendingFaction == null) {
+                    continue;
+                }
+
+                sendMessages(server, defendingFaction, attackingFaction);
+            }
+
             WarClaimsNetworking.WRAPPER.sendToAll(new InvasionSyncMessage(INVASIONS_TICK_CHANGES, INVASIONS_BY_POS_TICK_CHANGES));
         }
+    }
+
+    private static void sendMessages(MinecraftServer server, FactionInstance defendingFaction, FactionInstance attackingFaction) {
+        EntityPlayerMP owner = server.getPlayerList().getPlayerByUUID(defendingFaction.owner);
+        if (owner != null) {
+            sendMessage(owner, defendingFaction, attackingFaction);
+        }
+
+        for (UUID officerUuid : defendingFaction.officers) {
+            EntityPlayerMP officer = server.getPlayerList().getPlayerByUUID(officerUuid);
+            if (officer != null) {
+                sendMessage(officer, defendingFaction, attackingFaction);
+            }
+        }
+
+        for (UUID memberUuid : defendingFaction.members) {
+            EntityPlayerMP member = server.getPlayerList().getPlayerByUUID(memberUuid);
+            if (member != null) {
+                sendMessage(member, defendingFaction, attackingFaction);
+            }
+        }
+    }
+
+    private static void sendMessage(EntityPlayerMP playerMP, FactionInstance defendingFaction, FactionInstance attackingFaction) {
+        playerMP.sendMessage(new TextComponentString(String.format(
+                "Faction '%1$s' you are a member of is being invaded by '%2$s'!",
+                defendingFaction.name, attackingFaction.name
+        )));
     }
 
     public static void clear() {
@@ -180,6 +225,14 @@ public class InvasionManager {
 
     public static void onPlayerJoin(EntityPlayerMP playerMP) {
         WarClaimsNetworking.WRAPPER.sendTo(new InvasionSyncMessage(INVASIONS, INVASIONS_BY_POS), playerMP);
+
+        for (InvasionKey key : INVASIONS.keySet()) {
+            FactionInstance attackingFaction = FactionManager.getFaction(key.attackingFaction);
+            FactionInstance defendingFaction = FactionManager.getFaction(key.defendingFaction);
+            if (attackingFaction != null && defendingFaction != null && defendingFaction.isMember(playerMP)) {
+                sendMessage(playerMP, defendingFaction, attackingFaction);
+            }
+        }
     }
 
     public static void loadFromFile(String worldPath) {
