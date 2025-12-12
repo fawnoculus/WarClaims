@@ -180,6 +180,10 @@ public class FactionManager {
     }
 
     public static void saveToFile(String worldPath) {
+        if (FACTIONS.isEmpty()) {
+            return;
+        }
+
         // Save Factions
         File file = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "factions.json");
         try {

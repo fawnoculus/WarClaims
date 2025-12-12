@@ -206,6 +206,10 @@ public class ClaimManager {
     }
 
     public static void saveToFile(String worldPath) {
+        if (CLAIMS.isEmpty()) {
+            return;
+        }
+
         File file = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "claims.json");
         try {
             if (!file.getParentFile().exists()) {

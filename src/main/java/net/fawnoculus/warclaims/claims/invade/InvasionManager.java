@@ -281,6 +281,10 @@ public class InvasionManager {
     }
 
     public static void saveToFile(String worldPath) {
+        if (INVASIONS.isEmpty()) {
+            return;
+        }
+
         File file = new File(worldPath + File.separator + "data" + File.separator + "warclaims" + File.separator + "invasions.json");
         try {
             if (!file.getParentFile().exists()) {
