@@ -6,6 +6,7 @@ import net.fawnoculus.warclaims.claims.ClaimInstance;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
+import net.fawnoculus.warclaims.claims.invade.InvasionKey;
 import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -14,10 +15,13 @@ import net.minecraft.command.NumberInvalidException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.chunk.Chunk;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -95,25 +99,18 @@ public class InvadeSelectionCommand extends CommandBase {
         final int minZ = Math.min(startChunkZ, endChunkZ);
         final int maxZ = Math.max(startChunkZ, endChunkZ);
 
-        if (arePositionsInvalid(dimension, minX, maxX, minZ, maxZ)) {
-            throw new CommandException(
-                    "You cannot invade chunks that don't have either one neighbouring chunk not claimed by the attacked faction or two or more neighbouring chunks being invaded"
-            );
-        }
-
         int outOfRangeChunks = 0;
         int notClaimedChunks = 0;
         int claimedByOwnFaction = 0;
-        int notEnoughResources = 0;
 
-        int successfullyInvadedChunks = 0;
         int totalChunks = 0;
+        HashSet<ChunkPos> toTryInvade = new HashSet<>();
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 totalChunks++;
 
-                if (!WarClaimsConfig.isInInvasionRange(playerPos, x, z)) {
+                if (WarClaimsConfig.isOutOfInvasionRange(playerPos, x, z)) {
                     outOfRangeChunks++;
                     continue;
                 }
@@ -130,13 +127,7 @@ public class InvadeSelectionCommand extends CommandBase {
                     continue;
                 }
 
-                if (!InvasionManager.takeRequiredItems(playerMP)) {
-                    notEnoughResources++;
-                    continue;
-                }
-
-                InvasionManager.addInvasion(dimension, x, z, claim, selectedFaction);
-                successfullyInvadedChunks++;
+                toTryInvade.add(new ChunkPos(x, z));
             }
         }
 
@@ -150,6 +141,45 @@ public class InvadeSelectionCommand extends CommandBase {
 
         if (claimedByOwnFaction > 0) {
             sender.sendMessage(new TextComponentString(String.format("%1$s chunks where claimed by your selected faction", claimedByOwnFaction)));
+        }
+
+
+        int notEnoughResources = 0;
+        int successfullyInvadedChunks = 0;
+
+        int previousSize = Integer.MAX_VALUE;
+        while (toTryInvade.size() != previousSize) {
+            HashSet<ChunkPos> newTryInvade = new HashSet<>();
+            for (ChunkPos tryInvade : toTryInvade) {
+                if (!isValidPos(selectedFaction, dimension, tryInvade.x, tryInvade.z)) {
+                    // We need to keep checking as it may become valid later
+                    newTryInvade.add(tryInvade);
+                    continue;
+                }
+
+                if (!InvasionManager.takeRequiredItems(playerMP)) {
+                    notEnoughResources++;
+                    continue;
+                }
+
+                ClaimInstance claim = ClaimManager.getClaim(dimension, tryInvade.x, tryInvade.z);
+                if (claim == null) {
+                    throw new CommandException("Something went really wrong, claim == null");
+                }
+
+                InvasionManager.addInvasion(dimension, tryInvade.x, tryInvade.z, claim, selectedFaction);
+                successfullyInvadedChunks++;
+            }
+
+            previousSize = toTryInvade.size();
+            toTryInvade = newTryInvade;
+        }
+
+        if (!toTryInvade.isEmpty()) {
+            sender.sendMessage(new TextComponentString(String.format(
+                    "%1$s chunks could not be invaded because, To invade a chunk it must be next to a chunk you have a claim on or two or more chunks you are invading",
+                    toTryInvade.size()
+            )));
         }
 
         if (notEnoughResources > 0) {
@@ -170,67 +200,43 @@ public class InvadeSelectionCommand extends CommandBase {
         return Collections.emptyList();
     }
 
-    private boolean arePositionsInvalid(int dimension, int minX, int maxX, int minZ, int maxZ) {
-        int invalidPositions = 0;
-
-        if (isInvalidPos(dimension, minX, minZ)) {
-            invalidPositions++;
-        }
-
-        if (isInvalidPos(dimension, minX, maxZ)) {
-            invalidPositions++;
-        }
-
-        if (isInvalidPos(dimension, maxX, minZ)) {
-            invalidPositions++;
-        }
-
-        if (isInvalidPos(dimension, maxX, maxZ)) {
-            invalidPositions++;
-        }
-
-        return invalidPositions > 1;
-    }
-
-    private boolean isInvalidPos(int dimension, int chunkX, int chunkZ) {
-        ClaimInstance claim = ClaimManager.getClaim(dimension, chunkX, chunkZ);
-        if (claim == null) {
-            return false;
-        }
-
-        int claimedNeighbours = 0;
-        int invadedNeighbours = 0;
-
+    private boolean isValidPos(UUID attackingTeam, int dimension, int chunkX, int chunkZ) {
         ClaimInstance northClaim = ClaimManager.getClaim(dimension, chunkX, chunkZ - 1);
-        if (northClaim != null && claim.factionId.equals(northClaim.factionId)) {
-            claimedNeighbours++;
+        if (northClaim != null && attackingTeam.equals(northClaim.factionId)) {
+            return true;
         }
         ClaimInstance eastClaim = ClaimManager.getClaim(dimension, chunkX + 1, chunkZ);
-        if (eastClaim != null && claim.factionId.equals(eastClaim.factionId)) {
-            claimedNeighbours++;
+        if (eastClaim != null && attackingTeam.equals(eastClaim.factionId)) {
+            return true;
         }
         ClaimInstance southClaim = ClaimManager.getClaim(dimension, chunkX, chunkZ + 1);
-        if (southClaim != null && claim.factionId.equals(southClaim.factionId)) {
-            claimedNeighbours++;
+        if (southClaim != null && attackingTeam.equals(southClaim.factionId)) {
+            return true;
         }
         ClaimInstance westClaim = ClaimManager.getClaim(dimension, chunkX - 1, chunkZ);
-        if (westClaim != null && claim.factionId.equals(westClaim.factionId)) {
-            claimedNeighbours++;
+        if (westClaim != null && attackingTeam.equals(westClaim.factionId)) {
+            return true;
         }
 
-        if (InvasionManager.fromPos(dimension, chunkX, chunkZ - 1) != null) {
-            invadedNeighbours++;
+        int invasionCount = 0;
+
+        InvasionKey northInvasion = InvasionManager.fromPos(dimension, chunkX, chunkZ - 1);
+        if (northInvasion != null && attackingTeam.equals(northInvasion.attackingFaction)) {
+            invasionCount++;
         }
-        if (InvasionManager.fromPos(dimension, chunkX + 1, chunkZ) != null) {
-            invadedNeighbours++;
+        InvasionKey eastInvasion = InvasionManager.fromPos(dimension, chunkX + 1, chunkZ);
+        if (eastInvasion != null && attackingTeam.equals(eastInvasion.attackingFaction)) {
+            invasionCount++;
         }
-        if (InvasionManager.fromPos(dimension, chunkX, chunkZ + 1) != null) {
-            invadedNeighbours++;
+        InvasionKey southInvasion = InvasionManager.fromPos(dimension, chunkX, chunkZ + 1);
+        if (southInvasion != null && attackingTeam.equals(southInvasion.attackingFaction)) {
+            invasionCount++;
         }
-        if (InvasionManager.fromPos(dimension, chunkX - 1, chunkZ) != null) {
-            invadedNeighbours++;
+        InvasionKey westInvasion = InvasionManager.fromPos(dimension, chunkX - 1, chunkZ);
+        if (westInvasion != null && attackingTeam.equals(westInvasion.attackingFaction)) {
+            invasionCount++;
         }
 
-        return claimedNeighbours == 4 && invadedNeighbours < 2;
+        return invasionCount >= 2;
     }
 }

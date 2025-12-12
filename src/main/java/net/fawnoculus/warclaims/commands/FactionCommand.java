@@ -81,7 +81,7 @@ public class FactionCommand extends CommandBase {
 
             int chunkX;
             if ("~".equals(args[2])) {
-                chunkX = playerMP.chunkCoordZ;
+                chunkX = playerMP.chunkCoordX;
             } else {
                 try {
                     chunkX = Integer.parseInt(args[2]);
@@ -101,7 +101,7 @@ public class FactionCommand extends CommandBase {
                 }
             }
 
-            if (!WarClaimsConfig.isInClaimRange(playerMP.getPosition(), chunkX, chunkZ)) {
+            if (WarClaimsConfig.isOutOfClaimRange(playerMP.getPosition(), chunkX, chunkZ)) {
                 throw new CommandException(String.format("Capital Chunk is to far away, Max Claim Distance is: %1$d chunks", WarClaimsConfig.claimDistance));
             }
 

@@ -172,7 +172,7 @@ public class InvasionManager {
 
         if (!INVASIONS_TICK_CHANGES.isEmpty() || !INVASIONS_BY_POS_TICK_CHANGES.isEmpty()) {
             for (Map.Entry<InvasionKey, InvasionInstance> entry : INVASIONS_TICK_CHANGES.entrySet()) {
-                if (!entry.getValue().isNew) {
+                if (entry.getValue() != null && entry.getValue().ticksSinceCreation != 1) {
                     continue;
                 }
 

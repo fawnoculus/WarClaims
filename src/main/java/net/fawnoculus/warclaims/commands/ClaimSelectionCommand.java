@@ -2,6 +2,7 @@ package net.fawnoculus.warclaims.commands;
 
 import com.google.common.collect.ImmutableList;
 import net.fawnoculus.warclaims.WarClaimsConfig;
+import net.fawnoculus.warclaims.claims.ClaimInstance;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
@@ -12,10 +13,12 @@ import net.minecraft.command.NumberInvalidException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.text.TextComponentString;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -104,24 +107,52 @@ public class ClaimSelectionCommand extends CommandBase {
         final int minZ = Math.min(startChunkZ, endChunkZ);
         final int maxZ = Math.max(startChunkZ, endChunkZ);
 
-        int outOfRangeChunks = 0;
-        int alreadyClaimedChunks = 0;
-        int notEnoughResources = 0;
+        int outOfRange = 0;
+        int claimedByOtherFaction = 0;
 
-        int successfullyClaimedChunks = 0;
         int totalChunks = 0;
+        HashSet<ChunkPos> toTryClaim = new HashSet<>();
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 totalChunks++;
 
-                if (!WarClaimsConfig.isInClaimRange(playerPos, x, z)) {
-                    outOfRangeChunks++;
+                if (WarClaimsConfig.isOutOfClaimRange(playerPos, x, z)) {
+                    outOfRange++;
                     continue;
                 }
 
-                if (ClaimManager.getFaction(dimension, x, z) != null) {
-                    alreadyClaimedChunks++;
+                UUID claimingFactionId = ClaimManager.getFactionId(dimension, x, z);
+                FactionInstance claimingFaction = FactionManager.getFaction(claimingFactionId);
+                if (claimingFaction != null && !selectedFaction.equals(claimingFactionId)) {
+                    claimedByOtherFaction++;
+                    continue;
+                }
+
+                toTryClaim.add(new ChunkPos(x, z));
+            }
+        }
+
+        if (outOfRange > 0) {
+            sender.sendMessage(new TextComponentString(String.format("%1$d chunks where out of range", outOfRange)));
+        }
+
+        if (claimedByOtherFaction > 0) {
+            sender.sendMessage(new TextComponentString(String.format("%1$d chunks where claimed by other factions", claimedByOtherFaction)));
+        }
+
+
+        int notEnoughResources = 0;
+
+        int successfullyClaimedChunks = 0;
+
+        int previousSize = Integer.MAX_VALUE;
+        while (toTryClaim.size() != previousSize) {
+            HashSet<ChunkPos> newTryInvade = new HashSet<>();
+            for (ChunkPos tryInvade : toTryClaim) {
+                if (level != 4 && !isValidPos(selectedFaction, dimension, tryInvade.x, tryInvade.z)) {
+                    // We need to keep checking as it may become valid latet
+                    newTryInvade.add(tryInvade);
                     continue;
                 }
 
@@ -130,17 +161,19 @@ public class ClaimSelectionCommand extends CommandBase {
                     continue;
                 }
 
-                ClaimManager.claim(dimension, x, z, selectedFaction, level);
+                ClaimManager.claim(dimension, tryInvade.x, tryInvade.z, selectedFaction, level);
                 successfullyClaimedChunks++;
             }
+
+            previousSize = toTryClaim.size();
+            toTryClaim = newTryInvade;
         }
 
-        if (outOfRangeChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("%1$d chunks where out of range", outOfRangeChunks)));
-        }
-
-        if (alreadyClaimedChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("%1$d chunks where already Claimed", alreadyClaimedChunks)));
+        if (!toTryClaim.isEmpty()) {
+            sender.sendMessage(new TextComponentString(String.format(
+                    "%1$d chunks could not be claimed, because to claim a chunk one of their neighbours must be claimed by you or you must be claiming with level 4",
+                    toTryClaim.size()
+            )));
         }
 
         if (notEnoughResources > 0) {
@@ -150,6 +183,27 @@ public class ClaimSelectionCommand extends CommandBase {
         if (successfullyClaimedChunks > 0) {
             sender.sendMessage(new TextComponentString(String.format("Claimed %1$d/%2$d chunks", successfullyClaimedChunks, totalChunks)));
         }
+    }
+
+    private boolean isValidPos(UUID selectedFaction, int dimension, int chunkX, int chunkZ) {
+        ClaimInstance northClaim = ClaimManager.getClaim(dimension, chunkX, chunkZ - 1);
+        if (northClaim != null && selectedFaction.equals(northClaim.factionId)) {
+            return true;
+        }
+        ClaimInstance eastClaim = ClaimManager.getClaim(dimension, chunkX + 1, chunkZ);
+        if (eastClaim != null && selectedFaction.equals(eastClaim.factionId)) {
+            return true;
+        }
+        ClaimInstance southClaim = ClaimManager.getClaim(dimension, chunkX, chunkZ + 1);
+        if (southClaim != null && selectedFaction.equals(southClaim.factionId)) {
+            return true;
+        }
+        ClaimInstance westClaim = ClaimManager.getClaim(dimension, chunkX - 1, chunkZ);
+        if (westClaim != null && selectedFaction.equals(westClaim.factionId)) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override

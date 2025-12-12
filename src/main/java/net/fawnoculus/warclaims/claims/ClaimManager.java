@@ -40,6 +40,15 @@ public class ClaimManager {
         return CLAIMS.get(claimKey);
     }
 
+    public static @Nullable UUID getFactionId(int dimension, int chunkX, int chunkZ) {
+        ClaimInstance claim = getClaim(dimension, chunkX, chunkZ);
+        if (claim == null) {
+            return null;
+        }
+
+        return claim.factionId;
+    }
+
     public static @Nullable FactionInstance getFaction(int dimension, int chunkX, int chunkZ) {
         ClaimInstance claim = getClaim(dimension, chunkX, chunkZ);
         if (claim == null) {

@@ -45,17 +45,17 @@ public class WarClaimsConfig {
         }
     }
 
-    public static boolean isInClaimRange(BlockPos playerPos, int chunkX, int chunkZ) {
+    public static boolean isOutOfClaimRange(BlockPos playerPos, int chunkX, int chunkZ) {
         ChunkPos playerChunk = new ChunkPos(playerPos);
         int xDifference = Math.abs(playerChunk.x - chunkX);
         int zDifference = Math.abs(playerChunk.z - chunkZ);
-        return xDifference < claimDistance && zDifference < claimDistance;
+        return xDifference >= claimDistance || zDifference >= claimDistance;
     }
 
-    public static boolean isInInvasionRange(BlockPos playerPos, int chunkX, int chunkZ) {
+    public static boolean isOutOfInvasionRange(BlockPos playerPos, int chunkX, int chunkZ) {
         ChunkPos playerChunk = new ChunkPos(playerPos);
         int xDifference = Math.abs(playerChunk.x - chunkX);
         int zDifference = Math.abs(playerChunk.z - chunkZ);
-        return xDifference < invadeDistance && zDifference < invadeDistance;
+        return xDifference >= invadeDistance || zDifference >= invadeDistance;
     }
 }

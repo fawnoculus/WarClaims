@@ -98,7 +98,7 @@ jar {
     manifest {
         attributes(
                 "MixinConfigs": "warclaims.mixins.json",
-                "ForceLoadAsMod": true,
+                "ForceLoadAsMod": false,
                 "TweakClass": "org.spongepowered.asm.launch.MixinTweaker",
                 "TweakOrder": 0
         )

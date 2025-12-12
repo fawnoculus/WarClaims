@@ -2,8 +2,12 @@ package net.fawnoculus.warclaims.commands;
 
 import com.google.common.collect.ImmutableList;
 import net.fawnoculus.warclaims.WarClaimsConfig;
+import net.fawnoculus.warclaims.claims.ClaimInstance;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
+import net.fawnoculus.warclaims.claims.faction.FactionManager;
+import net.fawnoculus.warclaims.claims.invade.InvasionKey;
+import net.fawnoculus.warclaims.claims.invade.InvasionManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -11,21 +15,29 @@ import net.minecraft.command.NumberInvalidException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.text.TextComponentString;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
-public class UnclaimSelectionCommand extends CommandBase {
+public class ForceInvadeSelectionCommand extends CommandBase {
+    @Override
+    public int getRequiredPermissionLevel() {
+        return 2;
+    }
+
     @Override
     public String getName() {
-        return "unclaim-selection";
+        return "force-invade-selection";
     }
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "unclaim-selection <start-chunkX> <start-chunkZ> <end-chunkX> <end-chunkZ>";
+        return "force-invade-selection <start-chunkX> <start-chunkZ> <end-chunkX> <end-chunkZ>";
     }
 
     @Override
@@ -39,7 +51,6 @@ public class UnclaimSelectionCommand extends CommandBase {
         }
         EntityPlayerMP playerMP = (EntityPlayerMP) sender.getCommandSenderEntity();
         int dimension = playerMP.dimension;
-        BlockPos playerPos = playerMP.getPosition();
 
         int startChunkX;
         try {
@@ -69,56 +80,58 @@ public class UnclaimSelectionCommand extends CommandBase {
             throw new NumberInvalidException("%1$s is not a valid integer (end-ChunkZ)", args[3]);
         }
 
+        UUID selectedFaction = FactionManager.getSelectedFaction(playerMP);
+        if (selectedFaction == null) {
+            throw new CommandException("You must select or create a faction with /faction");
+        }
+
+        FactionInstance faction = FactionManager.getFaction(selectedFaction);
+        if (faction == null) {
+            throw new CommandException("The Team you have selected does not exist");
+        }
+
         final int minX = Math.min(startChunkX, endChunkX);
         final int maxX = Math.max(startChunkX, endChunkX);
         final int minZ = Math.min(startChunkZ, endChunkZ);
         final int maxZ = Math.max(startChunkZ, endChunkZ);
 
-        int outOfRangeChunks = 0;
         int notClaimedChunks = 0;
-        int missingPermissionChunks = 0;
-        int successfullyUnclaimedChunks = 0;
+        int claimedByOwnFaction = 0;
+
         int totalChunks = 0;
+        int successfullyInvadedChunks = 0;
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 totalChunks++;
 
-                if (WarClaimsConfig.isOutOfClaimRange(playerPos, x, z)) {
-                    outOfRangeChunks++;
-                    continue;
-                }
-
-                FactionInstance claimingFaction = ClaimManager.getFaction(dimension, x, z);
-                if (claimingFaction == null) {
+                ClaimInstance claim = ClaimManager.getClaim(dimension, x, z);
+                FactionInstance owningFaction = ClaimManager.getFaction(dimension, x, z);
+                if (claim == null || owningFaction == null) {
                     notClaimedChunks++;
                     continue;
                 }
 
-                if (!claimingFaction.isOfficer(playerMP)) {
-                    missingPermissionChunks++;
+                if (selectedFaction.equals(claim.factionId)) {
+                    claimedByOwnFaction++;
                     continue;
                 }
 
-                ClaimManager.unclaim(dimension, x, z);
-                successfullyUnclaimedChunks++;
+                InvasionManager.addInvasion(dimension, x, z, claim, selectedFaction);
+                successfullyInvadedChunks++;
             }
         }
 
-        if (outOfRangeChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("%1$d chunks where out of range", outOfRangeChunks)));
-        }
-
         if (notClaimedChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("%1$d chunks where not Claimed", notClaimedChunks)));
+            sender.sendMessage(new TextComponentString(String.format("%1$s chunks where not Claimed", notClaimedChunks)));
         }
 
-        if (missingPermissionChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("You didn't have the permission to unclaim %1$d chunks", missingPermissionChunks)));
+        if (claimedByOwnFaction > 0) {
+            sender.sendMessage(new TextComponentString(String.format("%1$s chunks where claimed by your selected faction", claimedByOwnFaction)));
         }
 
-        if (successfullyUnclaimedChunks > 0) {
-            sender.sendMessage(new TextComponentString(String.format("Unclaimed %1$d/%2$d chunks", successfullyUnclaimedChunks, totalChunks)));
+        if (successfullyInvadedChunks > 0) {
+            sender.sendMessage(new TextComponentString(String.format("Started Invading %1$s/%2$s chunks", successfullyInvadedChunks, totalChunks)));
         }
     }
 
@@ -126,10 +139,6 @@ public class UnclaimSelectionCommand extends CommandBase {
     public List<String> getTabCompletions(MinecraftServer server, ICommandSender sender, String[] args, @Nullable BlockPos targetPos) {
         if (args.length < 5) {
             return getListOfStringsMatchingLastWord(args, ImmutableList.of("-2", "0", "100", "420", "666"));
-        }
-
-        if (args.length == 5) {
-            return getListOfStringsMatchingLastWord(args, ImmutableList.of("0", "1", "2", "3", "4"));
         }
 
         return Collections.emptyList();

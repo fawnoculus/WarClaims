@@ -31,6 +31,10 @@ public class WarClaimsCommonProxy {
         event.registerServerCommand(new InvadeSelectionCommand());
         event.registerServerCommand(new ForceClaimSelectionCommand());
         event.registerServerCommand(new ForceClaimSingleCommand());
+        event.registerServerCommand(new ForceCurrentFactionCommand());
+        event.registerServerCommand(new ForceFactionCommand());
+        event.registerServerCommand(new ForceInvadeSelectionCommand());
+        event.registerServerCommand(new ForceInvadeSingleCommand());
         event.registerServerCommand(new ForceUnclaimSelectionCommand());
         event.registerServerCommand(new ForceUnclaimSingleCommand());
         event.registerServerCommand(new FactionCommand());

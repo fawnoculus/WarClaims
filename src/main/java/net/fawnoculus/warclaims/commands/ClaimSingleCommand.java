@@ -2,6 +2,7 @@ package net.fawnoculus.warclaims.commands;
 
 import com.google.common.collect.ImmutableList;
 import net.fawnoculus.warclaims.WarClaimsConfig;
+import net.fawnoculus.warclaims.claims.ClaimInstance;
 import net.fawnoculus.warclaims.claims.ClaimManager;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
@@ -56,24 +57,8 @@ public class ClaimSingleCommand extends CommandBase {
             throw new NumberInvalidException("%1$s is not a valid integer (chunkZ)", args[1]);
         }
 
-        if (!WarClaimsConfig.isInClaimRange(playerMP.getPosition(), chunkX, chunkZ)) {
+        if (WarClaimsConfig.isOutOfClaimRange(playerMP.getPosition(), chunkX, chunkZ)) {
             throw new CommandException(String.format("Chunk is to far away, Max Claim Distance is: %1$d chunks", WarClaimsConfig.claimDistance));
-        }
-
-        FactionInstance claimingFaction = ClaimManager.getFaction(dimension, chunkX, chunkZ);
-        if (claimingFaction != null) {
-            throw new CommandException(String.format("Chunk is already Claimed by %1$s", claimingFaction.name));
-        }
-
-        int level;
-        try {
-            level = Integer.parseInt(args[2]);
-        } catch (NumberFormatException ignored) {
-            throw new NumberInvalidException(String.format("%1$s is not a valid integer (level)", args[2]));
-        }
-
-        if (level < 0 || level > 4) {
-            throw new NumberInvalidException(String.format("level %1$s invalid, must be between 0 and 4", args[2]));
         }
 
         UUID selectedFaction = FactionManager.getSelectedFaction(playerMP);
@@ -93,12 +78,54 @@ public class ClaimSingleCommand extends CommandBase {
             ));
         }
 
+        UUID claimingFactionId = ClaimManager.getFactionId(dimension, chunkX, chunkZ);
+        FactionInstance claimingFaction = FactionManager.getFaction(claimingFactionId);
+        if (claimingFaction != null && !selectedFaction.equals(claimingFactionId)) {
+            throw new CommandException(String.format("Chunk is already Claimed by %1$s", claimingFaction.name));
+        }
+
+        int level;
+        try {
+            level = Integer.parseInt(args[2]);
+        } catch (NumberFormatException ignored) {
+            throw new NumberInvalidException(String.format("%1$s is not a valid integer (level)", args[2]));
+        }
+
+        if (level < 0 || level > 4) {
+            throw new NumberInvalidException(String.format("level %1$s invalid, must be between 0 and 4", args[2]));
+        }
+
+        if (level != 4 && !isValidPos(selectedFaction, dimension, chunkX, chunkZ)) {
+            throw new CommandException("Chunks can only be claimed if one of their neighbours is claimed by you or if you are claiming with level 4");
+        }
+
         if (!ClaimManager.takeRequiredItems(playerMP, level)) {
             throw new CommandException("You don't have the resources required to claim this chunk");
         }
 
         ClaimManager.claim(dimension, chunkX, chunkZ, selectedFaction, level);
         sender.sendMessage(new TextComponentString("Claimed the chunk at " + chunkX + ", " + chunkZ));
+    }
+
+    private boolean isValidPos(UUID selectedFaction, int dimension, int chunkX, int chunkZ) {
+        ClaimInstance northClaim = ClaimManager.getClaim(dimension, chunkX, chunkZ - 1);
+        if (northClaim != null && selectedFaction.equals(northClaim.factionId)) {
+            return true;
+        }
+        ClaimInstance eastClaim = ClaimManager.getClaim(dimension, chunkX + 1, chunkZ);
+        if (eastClaim != null && selectedFaction.equals(eastClaim.factionId)) {
+            return true;
+        }
+        ClaimInstance southClaim = ClaimManager.getClaim(dimension, chunkX, chunkZ + 1);
+        if (southClaim != null && selectedFaction.equals(southClaim.factionId)) {
+            return true;
+        }
+        ClaimInstance westClaim = ClaimManager.getClaim(dimension, chunkX - 1, chunkZ);
+        if (westClaim != null && selectedFaction.equals(westClaim.factionId)) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override

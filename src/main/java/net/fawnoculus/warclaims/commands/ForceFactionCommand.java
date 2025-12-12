@@ -21,6 +21,11 @@ public class ForceFactionCommand extends CommandBase {
     private static final ImmutableList<String> POSSIBLE_SUB_COMMANDS = ImmutableList.of("create", "delete", "set-current", "list-all");
 
     @Override
+    public int getRequiredPermissionLevel() {
+        return 2;
+    }
+
+    @Override
     public String getName() {
         return "force-faction";
     }
@@ -113,7 +118,7 @@ public class ForceFactionCommand extends CommandBase {
             return getListOfStringsMatchingLastWord(args, POSSIBLE_SUB_COMMANDS);
         }
 
-        if (args[0].equals("list-all")) {
+        if (args[0].equals("list-all") || args.length > 2) {
             return Collections.emptyList();
         }
 
