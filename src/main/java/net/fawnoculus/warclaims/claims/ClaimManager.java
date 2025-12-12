@@ -3,7 +3,7 @@ package net.fawnoculus.warclaims.claims;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import com.mojang.realmsclient.util.Pair;
+import net.fawnoculus.warclaims.utils.Pair;
 import net.fawnoculus.warclaims.WarClaims;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;

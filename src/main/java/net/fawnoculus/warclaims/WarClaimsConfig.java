@@ -8,12 +8,60 @@ import java.io.File;
 
 public class WarClaimsConfig {
     public static Configuration configuration;
+    public static String claimSingleCommandFormat = "/claim-single %1$d %2$d LEVEL_HERE";
+    public static String claimSelectionCommandFormat = "/claim-selection %1$d %2$d %3$d %4$d LEVEL_HERE";
+    public static String unclaimSingleCommandFormat = "/unclaim-single %1$d %2$d";
+    public static String unclaimSelectionCommandFormat = "/unclaim-selection %1$d %2$d %3$d %4$d";
+    public static String invadeSingleCommandFormat = "/invade-single %1$d %2$d ";
+    public static String invadeSelectionCommandFormat = "/invade-selection %1$d %2$d %3$d %4$d ";
     public static int claimDistance = 16;
     public static int invadeDistance = 16;
     public static boolean showTicksInInvasions = false;
 
     public static void synchronizeConfiguration(File configFile) {
         configuration = new Configuration(configFile);
+
+        claimSingleCommandFormat = configuration.getString(
+                "claimSingleCommandFormat",
+                Configuration.CATEGORY_CLIENT,
+                claimSingleCommandFormat,
+                "Format for the command for claiming a single chunk"
+        );
+
+        claimSelectionCommandFormat = configuration.getString(
+                "claimSelectionCommandFormat",
+                Configuration.CATEGORY_CLIENT,
+                claimSelectionCommandFormat,
+                "Format for the command for claiming a selection of chunks"
+        );
+
+        unclaimSingleCommandFormat = configuration.getString(
+                "unclaimSingleCommandFormat",
+                Configuration.CATEGORY_CLIENT,
+                unclaimSingleCommandFormat,
+                "Format for the command for unclaiming a single chunk"
+        );
+
+        unclaimSelectionCommandFormat = configuration.getString(
+                "unclaimSelectionCommandFormat",
+                Configuration.CATEGORY_CLIENT,
+                unclaimSelectionCommandFormat,
+                "Format for the command for unclaiming a selection of chunks"
+        );
+
+        invadeSingleCommandFormat = configuration.getString(
+                "invadeSingleCommandFormat",
+                Configuration.CATEGORY_CLIENT,
+                invadeSingleCommandFormat,
+                "Format for the command for invading a single chunk"
+        );
+
+        invadeSelectionCommandFormat = configuration.getString(
+                "invadeSelectionCommandFormat",
+                Configuration.CATEGORY_CLIENT,
+                invadeSelectionCommandFormat,
+                "Format for the command for invading a selection of chunks"
+        );
 
         claimDistance = configuration.getInt(
                 "claimDistance",

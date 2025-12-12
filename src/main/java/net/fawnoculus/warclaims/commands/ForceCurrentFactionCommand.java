@@ -1,7 +1,7 @@
 package net.fawnoculus.warclaims.commands;
 
 import com.google.common.collect.ImmutableList;
-import com.mojang.realmsclient.util.Pair;
+import net.fawnoculus.warclaims.utils.Pair;
 import net.fawnoculus.warclaims.claims.faction.FactionInstance;
 import net.fawnoculus.warclaims.claims.faction.FactionManager;
 import net.fawnoculus.warclaims.utils.ColorUtil;

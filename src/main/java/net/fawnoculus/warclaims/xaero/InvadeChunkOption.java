@@ -1,5 +1,6 @@
 package net.fawnoculus.warclaims.xaero;
 
+import net.fawnoculus.warclaims.WarClaimsConfig;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.GuiScreen;
 import xaero.map.gui.IRightClickableElement;
@@ -39,12 +40,12 @@ public class InvadeChunkOption extends RightClickOption {
     public void onAction(GuiScreen guiScreen) {
         if (!this.isMultiChunk()) {
             guiScreen.mc.displayGuiScreen(new GuiChat(
-                    String.format("/invade-single %1$d %2$d ", this.startX, this.startZ)
+                    String.format(WarClaimsConfig.invadeSingleCommandFormat, this.startX, this.startZ)
             ));
             return;
         }
         guiScreen.mc.displayGuiScreen(new GuiChat(
-                String.format("/invade-selection %1$d %2$d %3$d %4$d ", this.startX, this.startZ, this.endX, this.endZ)
+                String.format(WarClaimsConfig.invadeSelectionCommandFormat, this.startX, this.startZ, this.endX, this.endZ)
         ));
     }
 }

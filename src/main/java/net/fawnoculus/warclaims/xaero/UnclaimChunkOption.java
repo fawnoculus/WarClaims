@@ -1,5 +1,6 @@
 package net.fawnoculus.warclaims.xaero;
 
+import net.fawnoculus.warclaims.WarClaimsConfig;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.GuiScreen;
 import xaero.map.gui.IRightClickableElement;
@@ -39,12 +40,12 @@ public class UnclaimChunkOption extends RightClickOption {
     public void onAction(GuiScreen guiScreen) {
         if (!this.isMultiChunk()) {
             guiScreen.mc.displayGuiScreen(new GuiChat(
-                    String.format("/unclaim-single %1$d %2$d", this.startX, this.startZ)
+                    String.format(WarClaimsConfig.unclaimSingleCommandFormat, this.startX, this.startZ)
             ));
             return;
         }
         guiScreen.mc.displayGuiScreen(new GuiChat(
-                String.format("/unclaim-selection %1$d %2$d %3$d %4$d", this.startX, this.startZ, this.endX, this.endZ)
+                String.format(WarClaimsConfig.unclaimSelectionCommandFormat, this.startX, this.startZ, this.endX, this.endZ)
         ));
     }
 }
