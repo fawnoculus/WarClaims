@@ -122,9 +122,9 @@ public class ClaimSelectionCommand extends CommandBase {
                     continue;
                 }
 
-                UUID claimingFactionId = ClaimManager.getFactionId(dimension, x, z);
-                FactionInstance claimingFaction = FactionManager.getFaction(claimingFactionId);
-                if (claimingFaction != null && !selectedFaction.equals(claimingFactionId)) {
+                ClaimInstance claim = ClaimManager.getClaim(dimension, x, z);
+                FactionInstance claimingFaction = ClaimManager.getFaction(dimension, x, z);
+                if (claim != null && claimingFaction != null && claim.level != 5 && !selectedFaction.equals(claim.factionId)) {
                     claimedByOtherFaction++;
                     continue;
                 }

@@ -78,9 +78,9 @@ public class ClaimSingleCommand extends CommandBase {
             ));
         }
 
-        UUID claimingFactionId = ClaimManager.getFactionId(dimension, chunkX, chunkZ);
-        FactionInstance claimingFaction = FactionManager.getFaction(claimingFactionId);
-        if (claimingFaction != null && !selectedFaction.equals(claimingFactionId)) {
+        ClaimInstance claim = ClaimManager.getClaim(dimension, chunkX, chunkZ);
+        FactionInstance claimingFaction = ClaimManager.getFaction(dimension, chunkX, chunkZ);
+        if (claim != null && claimingFaction != null && claim.level != 5 && !selectedFaction.equals(claim.factionId)) {
             throw new CommandException(String.format("Chunk is already Claimed by %1$s", claimingFaction.name));
         }
 
